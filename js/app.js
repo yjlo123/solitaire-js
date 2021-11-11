@@ -24,7 +24,6 @@ let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
 	this.y = y;
 	this.width = width;
 	this.height = height;
-	this.isDragging = false;
 	this.val = val;
 	this.suit = suit;
 
@@ -67,6 +66,8 @@ let Stack = function(x, y) {
 	this.width = 100;
 	this.spacing = 40;
 	this.dragging = -1;
+	this.releasing = -1;
+	this.isAnimating = false;
 	// dragging x, y
 	this.dx = 0;
 	this.dy = 0;
@@ -188,6 +189,10 @@ let Stack = function(x, y) {
 		if (this.dragging > -1) {
 			upTo = this.dragging;
 		}
+		if (this.releasing > -1) {
+			upTo = this.releasing;
+		}
+
 		for (let i = 0; i < upTo; i++) {
 			let card = this.cards[i];
 			card.x = this.x;
@@ -274,13 +279,16 @@ let Stack = function(x, y) {
 function redraw(state) {
 	state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
 	for (let i = 0; i < state.stackList.length; i++) {
-		if (i == state.dragFrom) {
+		if (i == state.dragFrom || i == state.animStack) {
 			continue;
 		}
 		state.stackList[i].render(state.ctx);
 	}
 	if (state.dragFrom > -1) {
 		state.stackList[state.dragFrom].render(state.ctx);
+	}
+	if (state.animStack > -1) {
+		state.stackList[state.animStack].render(state.ctx);
 	}
 }
 
@@ -387,6 +395,8 @@ function initPointerListeners(state) {
 	
 	document.onpointerup = function ({x, y}) {
 		if (state.dragFrom > -1) {
+			let isValidMove = false;
+			let fromStack = state.stackList[state.dragFrom];
 			// drop to stack
 			for (let i = 0; i < state.stackList.length; i++) {
 				state.stackList[i].hover = false;
@@ -396,27 +406,58 @@ function initPointerListeners(state) {
 				if (state.stackList[i].checkDropOver(x, y)) {
 					// intend to drop to this stack
 					let toStack = state.stackList[i];
-					let fromStack = state.stackList[state.dragFrom];
 					if (toStack.allowedToDrop(fromStack.getDraggingCards())) {
 						let cards = fromStack.removeDraggingCards();
 						toStack.append(cards);
+						isValidMove = true;
 					}
 					break;
 				}
 			}
-	
-			state.stackList[state.dragFrom].dragging = -1;
+			if (!isValidMove) {
+				state.animStartTime = undefined;
+				state.animStack = state.dragFrom;
+				fromStack.releasing = fromStack.dragging;
+				requestAnimationFrame(update);
+			}
+
+			fromStack.dragging = -1;
 			state.dragFrom = -1;
 		}
 		redraw(state);
 	}
 }
 
+function update(time) {
+	let stack = globalState.stackList[globalState.animStack];
+
+	if (globalState.animStartTime === undefined) {
+		globalState.animStartTime = time;
+	}
+	let timeUnits = (time - globalState.animStartTime)/globalState.animRate;
+
+	if (timeUnits > 16) {
+		stack.releasing = -1;
+		globalState.animStack = -1;
+		return;
+	}
+
+	stack.dx = stack.dx + (stack.x + stack.ox - stack.dx)/15 * timeUnits;
+	stack.dy = stack.dy + (stack.y + stack.oy  +stack.spacing * stack.releasing - stack.dy)/15 * timeUnits;
+	redraw(globalState);
+	requestAnimationFrame(update);
+}
+
 let globalState = {
+	animRate: 20, // higher is slower
+
 	canvas: null,
 	ctx: null,
 	dragFrom: -1,
-	stackList: []
+	stackList: [],
+
+	animStack: -1,
+	animStartTime: -1
 }
 
 globalState.canvas = document.getElementById('canvas');
