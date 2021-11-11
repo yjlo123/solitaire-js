@@ -271,6 +271,19 @@ let Stack = function(x, y) {
 	}
 }
 
+function redraw(state) {
+	state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+	for (let i = 0; i < state.stackList.length; i++) {
+		if (i == state.dragFrom) {
+			continue;
+		}
+		state.stackList[i].render(state.ctx);
+	}
+	if (state.dragFrom > -1) {
+		state.stackList[state.dragFrom].render(state.ctx);
+	}
+}
+
 function shuffle(array) {
 	let currentIndex = array.length,  randomIndex;
 	while (currentIndex != 0) {
@@ -282,131 +295,134 @@ function shuffle(array) {
 	return array;
 }
 
-let canvas = document.getElementById('canvas');
-let ctx = canvas.getContext('2d');
+function initSlots(stackList) {
+	let slot0 = new Stack(50, 20);
+	slot0.isBase = true;
+	slot0.maxCardsAllowed = 1;
 
-let slot0 = new Stack(50, 20);
-slot0.isBase = true;
-slot0.maxCardsAllowed = 1;
+	let slot1 = new Stack(200, 20);
+	slot1.isBase = true;
+	slot1.maxCardsAllowed = 1;
 
-let slot1 = new Stack(200, 20);
-slot1.isBase = true;
-slot1.maxCardsAllowed = 1;
+	let slot2 = new Stack(350, 20);
+	slot2.isBase = true;
+	slot2.isDragonBase = true;
 
-let slot2 = new Stack(350, 20);
-slot2.isBase = true;
-slot2.isDragonBase = true;
+	let slot3 = new Stack(500, 20);
+	slot3.isBase = true;
+	slot3.maxCardsAllowed = 1;
 
-let slot3 = new Stack(500, 20);
-slot3.isBase = true;
-slot3.maxCardsAllowed = 1;
+	let slot4 = new Stack(650, 20);
+	slot4.isBase = true;
+	slot4.maxCardsAllowed = 1;
 
-let slot4 = new Stack(650, 20);
-slot4.isBase = true;
-slot4.maxCardsAllowed = 1;
-
-let stackList = [slot0, slot1, slot2, slot3, slot4];
-
-let deck = [];
-for (let i = 0; i < NUM_SUITS; i++) {
-	for (let j = 0; j < CARD_VAL.length; j++) {
-		deck.push(new Card(j, i));
-	}
+	stackList.push(slot0);
+	stackList.push(slot1);
+	stackList.push(slot2);
+	stackList.push(slot3);
+	stackList.push(slot4);
 }
 
-// Dragons
-for (let i = 0; i < DRAGON_NUM; i++) {
-	deck.push(new Card(-9));
-}
+function initDecks() {
+	let deck = [];
 
-shuffle(deck);
-
-let stackLeft = 50;
-let stackTop = 180;
-for (let i = 0; i < 6; i++) {
-	let s = new Stack(stackLeft, stackTop);
-	for (let j = 0; j < 6; j++) {
-		if (deck.length == 0) {
-			break;
-		}
-		s.append(deck.pop());
-	}
-	stackList.push(s);
-	stackLeft += 120;
-}
-
-
-let state = {
-	dragFrom: -1
-}
-
-function redraw() {
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	slot1.render(ctx);
-
-	for (let i = 0; i < stackList.length; i++) {
-		if (i == state.dragFrom) {
-			continue;
-		}
-		stackList[i].render(ctx);
-	}
-	if (state.dragFrom > -1) {
-		stackList[state.dragFrom].render(ctx);
-	}
-}
-
-document.onpointerdown = function ({x, y}) {
-	for (let i = 0; i < stackList.length; i++) {
-		let res = stackList[i].checkDrag(x, y);
-		if (res > -1) {
-			state.dragFrom = i;
-		}
-	}
-}
-
-document.onpointermove = function ({x, y}) {
-	if (state.dragFrom > -1) {
-		stackList[state.dragFrom].dx = x;
-		stackList[state.dragFrom].dy = y;
-
-		for (let i = 0; i < stackList.length; i++) {
-			let stack = stackList[i]
-			if (stack.checkDropOver(x, y) && i !== state.dragFrom) {
-				stack.hover = true;
-			} else {
-				stack.hover = false;
-			}
+	// Generate normal cards
+	for (let i = 0; i < NUM_SUITS; i++) {
+		for (let j = 0; j < CARD_VAL.length; j++) {
+			deck.push(new Card(j, i));
 		}
 	}
 
-	redraw();
+	// Generate dragon cards
+	for (let i = 0; i < DRAGON_NUM; i++) {
+		deck.push(new Card(-9));
+	}
+
+	shuffle(deck);
+	return deck;
 }
 
-document.onpointerup = function ({x, y}) {
-	if (state.dragFrom > -1) {
-		// drop to stack
-		for (let i = 0; i < stackList.length; i++) {
-			stackList[i].hover = false;
-			if (i == state.dragFrom) {
-				continue;
-			}
-			if (stackList[i].checkDropOver(x, y)) {
-				// intend to drop to this stack
-				let toStack = stackList[i];
-				let fromStack = stackList[state.dragFrom];
-				if (toStack.allowedToDrop(fromStack.getDraggingCards())) {
-					let cards = fromStack.removeDraggingCards();
-					toStack.append(cards);
-				}
+function initStacks(stackList, decks) {
+	let stackLeft = 50;
+	let stackTop = 180;
+	for (let i = 0; i < 6; i++) {
+		let s = new Stack(stackLeft, stackTop);
+		for (let j = 0; j < 6; j++) {
+			if (decks.length == 0) {
 				break;
 			}
+			s.append(decks.pop());
 		}
-
-		stackList[state.dragFrom].dragging = -1;
-		state.dragFrom = -1;
+		stackList.push(s);
+		stackLeft += 120;
 	}
-	redraw();
 }
 
+function initPointerListeners(state) {
+	document.onpointerdown = function ({x, y}) {
+		for (let i = 0; i < state.stackList.length; i++) {
+			let res = state.stackList[i].checkDrag(x, y);
+			if (res > -1) {
+				state.dragFrom = i;
+			}
+		}
+	}
+	
+	document.onpointermove = function ({x, y}) {
+		if (state.dragFrom > -1) {
+			state.stackList[state.dragFrom].dx = x;
+			state.stackList[state.dragFrom].dy = y;
+	
+			for (let i = 0; i < state.stackList.length; i++) {
+				let stack = state.stackList[i];
+				if (stack.checkDropOver(x, y) && i !== state.dragFrom) {
+					stack.hover = true;
+				} else {
+					stack.hover = false;
+				}
+			}
+		}
+		redraw(state);
+	}
+	
+	document.onpointerup = function ({x, y}) {
+		if (state.dragFrom > -1) {
+			// drop to stack
+			for (let i = 0; i < state.stackList.length; i++) {
+				state.stackList[i].hover = false;
+				if (i == state.dragFrom) {
+					continue;
+				}
+				if (state.stackList[i].checkDropOver(x, y)) {
+					// intend to drop to this stack
+					let toStack = state.stackList[i];
+					let fromStack = state.stackList[state.dragFrom];
+					if (toStack.allowedToDrop(fromStack.getDraggingCards())) {
+						let cards = fromStack.removeDraggingCards();
+						toStack.append(cards);
+					}
+					break;
+				}
+			}
+	
+			state.stackList[state.dragFrom].dragging = -1;
+			state.dragFrom = -1;
+		}
+		redraw(state);
+	}
+}
 
-redraw();
+let globalState = {
+	canvas: null,
+	ctx: null,
+	dragFrom: -1,
+	stackList: []
+}
+
+globalState.canvas = document.getElementById('canvas');
+globalState.ctx = globalState.canvas.getContext('2d');
+initSlots(globalState.stackList);
+initStacks(globalState.stackList, initDecks());
+
+initPointerListeners(globalState);
+redraw(globalState);
