@@ -1,0 +1,17 @@
+body {
+	margin:0;
+	touch-action:none;
+}
+
+.table {
+	border: 1px solid #555;
+}
+
+.wrapper {
+	width: 100%;
+	background-color: #bbb;
+}
+
+.instructions p{
+	margin:  5px 0;
+}
