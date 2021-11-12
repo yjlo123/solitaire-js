@@ -376,6 +376,8 @@ function registerPointerListeners(state) {
 			let res = state.stackList[i].checkDrag(x, y);
 			if (res > -1) {
 				state.dragFrom = i;
+				state.stackList[state.dragFrom].dx = x;
+				state.stackList[state.dragFrom].dy = y;
 			}
 		}
 	}
