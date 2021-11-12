@@ -461,15 +461,16 @@ function animDealCard(time) {
 	}
 	let timeUnits = (time - globalState.animStartTime)/10;
 
+	const overallDelay = 80;
 	const delay = 3;
 
-	if (timeUnits > 21 + globalState.deckCards.length * delay) {
+	if (timeUnits > 21 + globalState.deckCards.length * delay + overallDelay) {
 		globalState.initGame();
 		return;
 	}
 
 	for (let i = 0; i < globalState.deckCards.length; i++) {
-		let timeOffset = timeUnits - delay * i;
+		let timeOffset = timeUnits - overallDelay - delay * i;
 		if (timeOffset < 0) {
 			timeOffset = 0;
 		} else if (timeOffset > 20) {
@@ -491,12 +492,15 @@ function animDealCard(time) {
 	for (let i = 0; i < 5; i++) {
 		globalState.stackList[i].render(globalState.ctx);
 	}
+
+	let remainingIdx = Math.floor((Math.max(timeUnits - overallDelay, 0))/delay);
+
 	/* remaining cards */
-	for (let i = globalState.deckCards.length-1; i > Math.floor(timeUnits/delay); i--) {
+	for (let i = globalState.deckCards.length-1; i > remainingIdx; i--) {
 		globalState.deckCards[i].render(globalState.ctx);
 	}
 	/* dealt cards */
-	for (let i = 0; i < Math.floor(timeUnits/delay); i++) {
+	for (let i = 0; i <= remainingIdx; i++) {
 		if (i >= globalState.deckCards.length) {
 			// to prevent out of bound
 			continue;
@@ -526,9 +530,12 @@ let globalState = {
 	}
 }
 
-globalState.canvas = document.getElementById('canvas');
-globalState.ctx = globalState.canvas.getContext('2d');
-initSlots(globalState.stackList);
-globalState.deckCards = initDecks();
+window.addEventListener('load', (event) => {
+	globalState.canvas = document.getElementById('canvas');
+	globalState.ctx = globalState.canvas.getContext('2d');
+	initSlots(globalState.stackList);
+	globalState.deckCards = initDecks();
+	
+	requestAnimationFrame(animDealCard);
+});
 
-requestAnimationFrame(animDealCard);
