@@ -353,20 +353,24 @@ function initDecks() {
 function initStacks(stackList, decks) {
 	let stackLeft = 50;
 	let stackTop = 180;
-	for (let i = 0; i < 6; i++) {
+	const columns = 6;
+	const rows = 6;
+
+	for (let i = 0; i < columns; i++) {
 		let s = new Stack(stackLeft, stackTop);
-		for (let j = 0; j < 6; j++) {
-			if (decks.length == 0) {
+		for (let j = 0; j < rows; j++) {
+			let idx = i + columns*j;
+			if (idx >= decks.length) {
 				break;
 			}
-			s.append(decks.pop());
+			s.append(decks[idx]);
 		}
 		stackList.push(s);
 		stackLeft += 120;
 	}
 }
 
-function initPointerListeners(state) {
+function registerPointerListeners(state) {
 	document.onpointerdown = function ({x, y}) {
 		for (let i = 0; i < state.stackList.length; i++) {
 			let res = state.stackList[i].checkDrag(x, y);
@@ -418,7 +422,7 @@ function initPointerListeners(state) {
 				state.animStartTime = undefined;
 				state.animStack = state.dragFrom;
 				fromStack.releasing = fromStack.dragging;
-				requestAnimationFrame(update);
+				requestAnimationFrame(animMoveBack);
 			}
 
 			fromStack.dragging = -1;
@@ -428,7 +432,7 @@ function initPointerListeners(state) {
 	}
 }
 
-function update(time) {
+function animMoveBack(time) {
 	let stack = globalState.stackList[globalState.animStack];
 
 	if (globalState.animStartTime === undefined) {
@@ -445,7 +449,60 @@ function update(time) {
 	stack.dx = stack.dx + (stack.x + stack.ox - stack.dx)/15 * timeUnits;
 	stack.dy = stack.dy + (stack.y + stack.oy  +stack.spacing * stack.releasing - stack.dy)/15 * timeUnits;
 	redraw(globalState);
-	requestAnimationFrame(update);
+	requestAnimationFrame(animMoveBack);
+}
+
+function animDealCard(time) {
+
+	if (globalState.animStartTime === undefined) {
+		globalState.animStartTime = time;
+	}
+	let timeUnits = (time - globalState.animStartTime)/10;
+
+	const delay = 3;
+
+	if (timeUnits > 21 + globalState.deckCards.length * delay) {
+		globalState.initGame();
+		return;
+	}
+
+	for (let i = 0; i < globalState.deckCards.length; i++) {
+		let timeOffset = timeUnits - delay * i;
+		if (timeOffset < 0) {
+			timeOffset = 0;
+		} else if (timeOffset > 20) {
+			timeOffset = 20;
+		}
+
+		let card = globalState.deckCards[i];
+		const fromX = 350;
+		const fromY = 20;
+		let targetX = 50 + 120 * (i%6);
+		let targetY = 180 + 40 * Math.floor(i/6);
+		card.x = fromX + (targetX - fromX)/20 * timeOffset;
+		card.y = fromY + (targetY - fromY)/20 * timeOffset;
+	}
+
+	/* redraw */
+	globalState.ctx.clearRect(0, 0, globalState.canvas.width, globalState.canvas.height);
+	/* free cells */
+	for (let i = 0; i < 5; i++) {
+		globalState.stackList[i].render(globalState.ctx);
+	}
+	/* remaining cards */
+	for (let i = globalState.deckCards.length-1; i > Math.floor(timeUnits/delay); i--) {
+		globalState.deckCards[i].render(globalState.ctx);
+	}
+	/* dealt cards */
+	for (let i = 0; i < Math.floor(timeUnits/delay); i++) {
+		if (i >= globalState.deckCards.length) {
+			// to prevent out of bound
+			continue;
+		}
+		globalState.deckCards[i].render(globalState.ctx);
+	}
+
+	requestAnimationFrame(animDealCard);
 }
 
 let globalState = {
@@ -455,15 +512,21 @@ let globalState = {
 	ctx: null,
 	dragFrom: -1,
 	stackList: [],
+	deckCards: [],
 
 	animStack: -1,
-	animStartTime: -1
+	animStartTime: -1,
+
+	initGame: function () {
+		initStacks(globalState.stackList, globalState.deckCards);
+		redraw(globalState);
+		registerPointerListeners(globalState);
+	}
 }
 
 globalState.canvas = document.getElementById('canvas');
 globalState.ctx = globalState.canvas.getContext('2d');
 initSlots(globalState.stackList);
-initStacks(globalState.stackList, initDecks());
+globalState.deckCards = initDecks();
 
-initPointerListeners(globalState);
-redraw(globalState);
+requestAnimationFrame(animDealCard);
