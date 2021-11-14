@@ -31,7 +31,7 @@ let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
 		ctx.save();
 		ctx.roundRect(this.x, this.y, this.width, this.height, this.width/15);
 		if (shade) {
-			ctx.fillStyle = '#ccc';
+			ctx.fillStyle = '#ddd';
 		} else {
 			ctx.fillStyle = '#eee';
 		}
@@ -193,7 +193,6 @@ let Stack = function(x, y) {
 				ctx.fillStyle = '#aaa';
 				ctx.fill();
 			}
-			
 		}
 
 		/* render remaining */
@@ -216,13 +215,26 @@ let Stack = function(x, y) {
 			}
 		}
 
-		// render dragging
+		/* render dragging */
+		if (this.cards[upTo]) {
+			/* draw shadow */
+			ctx.save();
+			ctx.roundRect(this.dx-this.ox, this.dy-this.oy, this.width, 140+this.spacing*(this.cards.length-upTo-1), this.width/15);
+			ctx.shadowBlur = 8;
+			ctx.shadowOffsetX = 4;
+			ctx.shadowOffsetY = 4;
+			ctx.shadowColor = "#666";
+			ctx.fill();
+			ctx.restore();
+		}
+
 		for (let i = upTo; i < this.cards.length; i++) {
 			let card = this.cards[i];
 			card.x = this.dx-this.ox;
 			card.y = this.dy-this.oy + (i-upTo)*this.spacing;
 			card.render(ctx);
 		}
+
 		ctx.restore();
 	}
 
@@ -288,7 +300,26 @@ let Stack = function(x, y) {
 	}
 }
 
-function redraw(state) {
+function checkStats(state, limit=0) {
+	let interval = -1
+	if (state.stats.lastTs > 0) {
+		interval = Date.now() - state.stats.lastTs;
+	}
+	if (interval > limit) {
+		let fps = Math.floor(1000 / interval);
+		document.getElementById("stats").innerHTML = fps + " fps";
+		state.stats.lastTs = Date.now();
+	}
+	return interval;
+}
+
+function redraw(state, limit=0) {
+	let interval = checkStats(state, limit);
+	if (interval > 0 && interval < limit) {
+		return;
+	}
+
+	/* draw */
 	state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
 	for (let i = 0; i < state.stackList.length; i++) {
 		if (i == state.dragFrom || i == state.animStack) {
@@ -407,8 +438,8 @@ function registerPointerListeners(state) {
 					stack.hover = false;
 				}
 			}
+			redraw(state, 15);
 		}
-		redraw(state);
 	}
 	
 	document.onpointerup = function ({x, y}) {
@@ -457,6 +488,7 @@ function animMoveBack(time) {
 	if (timeUnits > 16) {
 		stack.releasing = -1;
 		globalState.animStack = -1;
+		redraw(globalState);
 		return;
 	}
 
@@ -467,6 +499,7 @@ function animMoveBack(time) {
 }
 
 function animDealCard(time) {
+	checkStats(globalState);
 
 	if (globalState.animStartTime === undefined) {
 		globalState.animStartTime = time;
@@ -524,6 +557,9 @@ function animDealCard(time) {
 }
 
 let globalState = {
+	stats: {
+		lastTs: Date.now()
+	},
 	animRate: 20, // higher is slower
 
 	canvas: null,
@@ -543,6 +579,8 @@ let globalState = {
 }
 
 window.addEventListener('load', (event) => {
+	checkStats(globalState);
+
 	globalState.canvas = document.getElementById('canvas');
 	globalState.ctx = globalState.canvas.getContext('2d');
 	initSlots(globalState.stackList);

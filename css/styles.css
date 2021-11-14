@@ -8,10 +8,19 @@ body {
 }
 
 .wrapper {
+	position: relative;
 	width: 100%;
 	background-color: #bbb;
 }
 
 .instructions p{
 	margin:  5px 0;
+}
+
+#stats {
+	position: absolute;
+	left: 0;
+	top: 0;
+	color: white;
+	font-size: 12px;
 }
