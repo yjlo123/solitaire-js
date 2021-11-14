@@ -160,17 +160,28 @@ let Stack = function(x, y) {
 
 	this.render = function(ctx) {
 		ctx.save();
-		// render background
-		ctx.roundRect(this.x, this.y, this.width, 140, this.width/15);
+		/* render background */
 		if (this.isDone) {
+			/* stack card back */
+			for (let i = 0; i < CARD_VAL.length/2; i++) {
+				ctx.roundRect(this.x, this.y-2*i, this.width, 140, this.width/15);
+				ctx.fillStyle = '#eee';
+				ctx.fill();
+				ctx.strokeStyle = '#333';
+				ctx.stroke();
+			}
+			const offset = 2 * (CARD_VAL.length/2-1);
+			let padding = Math.floor(this.width / 25);
+			ctx.roundRect(this.x+padding, this.y-offset+padding, this.width-padding*2, 140-padding*2, (this.width-padding*2)/15);
 			ctx.fillStyle = '#77B97F';
 			ctx.fill();
-			ctx.fillStyle = '#eee';
-			ctx.font = (this.width/8)+"pt sans-serif";
-			ctx.fillText('Done', this.x+10, this.y+25);
+			// ctx.fillStyle = '#eee';
+			// ctx.font = (this.width/8)+"pt sans-serif";
+			// ctx.fillText('Done', this.x+10, this.y+25);
 		} else {
-			
+			ctx.roundRect(this.x, this.y, this.width, 140, this.width/15);
 			if (this.isDragonBase) {
+				/* dragon cell */
 				ctx.fillStyle = '#ddd';
 				ctx.fill();
 				ctx.fillStyle = '#777';
@@ -178,13 +189,14 @@ let Stack = function(x, y) {
 				ctx.fillText('Dragon', this.x+10, this.y+25);
 				ctx.fillText(this.dragonCount+'/'+DRAGON_NUM, this.x+10, this.y+50);
 			} else {
-				ctx.fillStyle = '#999';
+				/* empty slot */
+				ctx.fillStyle = '#aaa';
 				ctx.fill();
 			}
 			
 		}
 
-		// render remaining
+		/* render remaining */
 		let upTo = this.cards.length;
 		if (this.dragging > -1) {
 			upTo = this.dragging;
