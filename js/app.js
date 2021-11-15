@@ -4,7 +4,8 @@ const DRAGON_VAL = ['DRAGON'];
 const DRAGON_NUM = 4;
 const NUM_SUITS = 4;
 const SUIT_COLORS = ['red', 'green', 'blue'];
-
+const DEFAULT_SHADOW_LEVEL = 15;
+const DEFAULT_SHADOW_OFFSET = 4;
 
 CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, radius) {
 	if (width < 2 * radius) radius = width / 2;
@@ -75,6 +76,8 @@ let Stack = function(x, y) {
 	this.ox = 0;
 	this.oy = 0;
 	this.hover = false;
+	this.shadowLevel = DEFAULT_SHADOW_LEVEL;
+	this.shadowOffset = DEFAULT_SHADOW_OFFSET;
 
 	this.append = function(cards) {
 		if (this.isDragonBase) {
@@ -220,9 +223,9 @@ let Stack = function(x, y) {
 			/* draw shadow */
 			ctx.save();
 			ctx.roundRect(this.dx-this.ox, this.dy-this.oy, this.width, 140+this.spacing*(this.cards.length-upTo-1), this.width/15);
-			ctx.shadowBlur = 8;
-			ctx.shadowOffsetX = 4;
-			ctx.shadowOffsetY = 4;
+			ctx.shadowBlur = this.shadowLevel;
+			ctx.shadowOffsetX = this.shadowOffset;
+			ctx.shadowOffsetY = this.shadowOffset;
 			ctx.shadowColor = "#666";
 			ctx.fill();
 			ctx.restore();
@@ -419,8 +422,11 @@ function registerPointerListeners(state) {
 			let res = state.stackList[i].checkDrag(x, y);
 			if (res > -1) {
 				state.dragFrom = i;
-				state.stackList[state.dragFrom].dx = x;
-				state.stackList[state.dragFrom].dy = y;
+				let stack = state.stackList[state.dragFrom]
+				stack.dx = x;
+				stack.dy = y;
+				stack.shadowLevel = DEFAULT_SHADOW_LEVEL;
+				stack.shadowOffset = DEFAULT_SHADOW_OFFSET;
 			}
 		}
 	}
@@ -492,8 +498,12 @@ function animMoveBack(time) {
 		return;
 	}
 
-	stack.dx = stack.dx + (stack.x + stack.ox - stack.dx)/15 * timeUnits;
-	stack.dy = stack.dy + (stack.y + stack.oy  +stack.spacing * stack.releasing - stack.dy)/15 * timeUnits;
+	stack.dx += (stack.x + stack.ox - stack.dx)/15 * timeUnits;
+	stack.dy += (stack.y + stack.oy  +stack.spacing * stack.releasing - stack.dy)/15 * timeUnits;
+	if (timeUnits > (16-DEFAULT_SHADOW_LEVEL) && stack.shadowLevel > 0) {
+		stack.shadowLevel -= 1;
+		stack.shadowOffset = Math.max(stack.shadowOffset-1, 0);
+	}
 	redraw(globalState);
 	requestAnimationFrame(animMoveBack);
 }
