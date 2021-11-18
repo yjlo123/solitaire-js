@@ -4,13 +4,14 @@ body {
 }
 
 .table {
-	border: 1px solid #555;
+	/*border: 1px solid #555;*/
+	background-color: rgb(202, 202, 202);
+	box-shadow: 0 0 100px rgba(0,0,0,0.2) inset;
 }
 
 .wrapper {
 	position: relative;
 	width: 100%;
-	background-color: #bbb;
 }
 
 .instructions p{

@@ -1,6 +1,7 @@
 
 const CARD_VAL = ['6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const DRAGON_VAL = ['DRAGON'];
+const SUITS = ['♦', '♠', '♥', '♣'];
+const DRAGON_VALS = ['★', '✿', '❤', '♬', '☁', '❅', '☂'];
 const DRAGON_NUM = 4;
 const NUM_SUITS = 4;
 const SUIT_COLORS = ['red', 'green', 'blue'];
@@ -27,6 +28,7 @@ let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
 	this.height = height;
 	this.val = val;
 	this.suit = suit;
+	this.dealt = false;
 
 	this.render = function(ctx, shade=false) {
 		ctx.save();
@@ -36,21 +38,32 @@ let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
 		} else {
 			ctx.fillStyle = '#eee';
 		}
-		ctx.fill();
-		ctx.strokeStyle = '#333';
+		if (this.dealt) {
+			ctx.save();
+			ctx.shadowBlur = 3;
+			ctx.shadowOffsetX = 0;
+			ctx.shadowOffsetY = 2;
+			ctx.shadowColor = 'rgba(0,0,0,0.4)';
+			ctx.fill();
+			ctx.restore();
+		} else {
+			ctx.fill();
+		}
+		ctx.strokeStyle = '#ccc';
 		ctx.stroke();
 
 		// text
-		ctx.font = (this.width/8)+"pt sans-serif";
-		let card_value = null;
 		if (this.val >= 0) {
-			card_value = CARD_VAL[this.val];
+			ctx.font = (this.width/8)+"pt sans-serif";
 			ctx.fillStyle = SUIT_COLORS[this.suit%2];
+			ctx.fillText(CARD_VAL[this.val], this.x+10, this.y+25);
+			// ctx.font = (this.width/10)+"pt sans-serif";
+			// ctx.fillText(SUITS[this.suit], this.x+20, this.y+24);
 		} else {
-			card_value = DRAGON_VAL[this.val + 9];
+			ctx.font = (this.width/8)+"pt sans-serif";
 			ctx.fillStyle = '#555';
+			ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
 		}
-		ctx.fillText(card_value, this.x+10, this.y+25);
 		ctx.restore();
 	}
 }
@@ -129,7 +142,6 @@ let Stack = function(x, y) {
 			}
 		}
 
-
 		if (this.cards.length + cards.length > this.maxCardsAllowed) {
 			return false;
 		}
@@ -189,7 +201,7 @@ let Stack = function(x, y) {
 				ctx.fill();
 				ctx.fillStyle = '#777';
 				ctx.font = (this.width/8)+"pt sans-serif";
-				ctx.fillText('Dragon', this.x+10, this.y+25);
+				ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
 				ctx.fillText(this.dragonCount+'/'+DRAGON_NUM, this.x+10, this.y+50);
 			} else {
 				/* empty slot */
@@ -226,7 +238,7 @@ let Stack = function(x, y) {
 			ctx.shadowBlur = this.shadowLevel;
 			ctx.shadowOffsetX = this.shadowOffset;
 			ctx.shadowOffsetY = this.shadowOffset;
-			ctx.shadowColor = "#666";
+			ctx.shadowColor = 'rgba(0,0,0,0.3)';
 			ctx.fill();
 			ctx.restore();
 		}
@@ -525,14 +537,15 @@ function animDealCard(time) {
 	}
 
 	for (let i = 0; i < globalState.deckCards.length; i++) {
+		let card = globalState.deckCards[i];
 		let timeOffset = timeUnits - overallDelay - delay * i;
 		if (timeOffset < 0) {
 			timeOffset = 0;
 		} else if (timeOffset > 20) {
 			timeOffset = 20;
+			card.dealt = true;
 		}
 
-		let card = globalState.deckCards[i];
 		const fromX = 350;
 		const fromY = 20;
 		let targetX = 50 + 120 * (i%6);
@@ -577,6 +590,7 @@ let globalState = {
 	dragFrom: -1,
 	stackList: [],
 	deckCards: [],
+	dragonSymbol: DRAGON_VALS[Math.floor(Math.random() * DRAGON_VALS.length)],
 
 	animStack: -1,
 	animStartTime: -1,
