@@ -42,14 +42,14 @@ let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
 			ctx.save();
 			ctx.shadowBlur = 3;
 			ctx.shadowOffsetX = 0;
-			ctx.shadowOffsetY = 2;
-			ctx.shadowColor = 'rgba(0,0,0,0.4)';
+			ctx.shadowOffsetY = 1;
+			ctx.shadowColor = 'rgba(0,0,0,0.3)';
 			ctx.fill();
 			ctx.restore();
 		} else {
 			ctx.fill();
 		}
-		ctx.strokeStyle = '#ccc';
+		ctx.strokeStyle = '#bbb';
 		ctx.stroke();
 
 		// text
