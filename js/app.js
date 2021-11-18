@@ -340,25 +340,29 @@ function checkStats(state, limit=0) {
 	return interval;
 }
 
-function redraw(state, limit=0) {
+function redraw(state, limit=0, frontOnly=false) {
 	let interval = checkStats(state, limit);
 	if (interval > 0 && interval < limit) {
 		return;
 	}
 
 	/* draw */
-	state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
-	for (let i = 0; i < state.stackList.length; i++) {
-		if (i == state.dragFrom || i == state.animStack) {
-			continue;
+	if (!frontOnly) {
+		state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+		for (let i = 0; i < state.stackList.length; i++) {
+			if (i == state.dragFrom || i == state.animStack) {
+				continue;
+			}
+			state.stackList[i].render(state.ctx);
 		}
-		state.stackList[i].render(state.ctx);
 	}
+	
+	state.ctxF.clearRect(0, 0, state.canvas.width, state.canvas.height);
 	if (state.dragFrom > -1) {
-		state.stackList[state.dragFrom].render(state.ctx);
+		state.stackList[state.dragFrom].render(state.ctxF);
 	}
 	if (state.animStack > -1) {
-		state.stackList[state.animStack].render(state.ctx);
+		state.stackList[state.animStack].render(state.ctxF);
 	}
 }
 
@@ -449,7 +453,7 @@ function getMousePos(canvas, cx, cy) {
 }
 
 function registerPointerListeners(state) {
-	state.canvas.onpointerdown = function ({x, y}) {
+	state.canvasF.onpointerdown = function ({x, y}) {
 		for (let i = 0; i < state.stackList.length; i++) {
 			let res = state.stackList[i].checkDrag(x, y);
 			if (res > -1) {
@@ -461,9 +465,10 @@ function registerPointerListeners(state) {
 				stack.shadowOffset = DEFAULT_SHADOW_OFFSET;
 			}
 		}
+		redraw(state);
 	}
 	
-	state.canvas.onpointermove = function ({x, y}) {
+	state.canvasF.onpointermove = function ({x, y}) {
 		if (state.dragFrom > -1) {
 			state.stackList[state.dragFrom].dx = x;
 			state.stackList[state.dragFrom].dy = y;
@@ -471,16 +476,22 @@ function registerPointerListeners(state) {
 			for (let i = 0; i < state.stackList.length; i++) {
 				let stack = state.stackList[i];
 				if (stack.checkDropOver(x, y) && i !== state.dragFrom) {
-					stack.hover = true;
+					if (!stack.hover) {
+						stack.hover = true;
+						redraw(state);
+					}
 				} else {
-					stack.hover = false;
+					if (stack.hover) {
+						stack.hover = false;
+						redraw(state);
+					}
 				}
 			}
-			redraw(state, 15);
+			redraw(state, 15, true);
 		}
 	}
 	
-	state.canvas.onpointerup = function ({x, y}) {
+	state.canvasF.onpointerup = function ({x, y}) {
 		if (state.dragFrom > -1) {
 			let isValidMove = false;
 			let fromStack = state.stackList[state.dragFrom];
@@ -536,7 +547,7 @@ function animMoveBack(time) {
 		stack.shadowLevel -= 1;
 		stack.shadowOffset = Math.max(stack.shadowOffset-1, 0);
 	}
-	redraw(globalState);
+	redraw(globalState, 15, true);
 	requestAnimationFrame(animMoveBack);
 }
 
@@ -606,6 +617,7 @@ let globalState = {
 	animRate: 20, // higher is slower
 
 	canvas: null,
+	canvasF: null,
 	ctx: null,
 	dragFrom: -1,
 	stackList: [],
@@ -624,9 +636,11 @@ let globalState = {
 
 window.addEventListener('load', (event) => {
 	checkStats(globalState);
-
-	globalState.canvas = document.getElementById('canvas');
+	globalState.canvas = document.getElementById('canvas-b');
 	globalState.ctx = globalState.canvas.getContext('2d');
+
+	globalState.canvasF = document.getElementById('canvas-f');
+	globalState.ctxF = globalState.canvasF.getContext('2d');
 	initSlots(globalState.stackList);
 	globalState.deckCards = initDecks();
 	

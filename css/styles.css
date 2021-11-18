@@ -3,15 +3,28 @@ body {
 	touch-action:none;
 }
 
-.table {
+.wrapper {
+	width: 100%;
+	overflow: hidden;
+}
+
+.stage {
+	position: relative;
+	height: 650px;
+	width: 800px;
+}
+
+.back {
+	position: absolute;
 	/*border: 1px solid #555;*/
 	background-color: rgb(202, 202, 202);
 	box-shadow: 0 0 100px rgba(0,0,0,0.2) inset;
 }
 
-.wrapper {
-	position: relative;
-	width: 100%;
+.front {
+	position: absolute;
+	left: 0;
+	top: 0;
 }
 
 .instructions p{
