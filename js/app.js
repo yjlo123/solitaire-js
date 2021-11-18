@@ -192,12 +192,18 @@ let Stack = function(x, y) {
 			for (let i = 0; i < CARD_VAL.length/2; i++) {
 				ctx.roundRect(this.x, this.y-2*i, this.width, 140, this.width/15);
 				ctx.fillStyle = '#eee';
+				ctx.save();
+				ctx.shadowBlur = 2;
+				ctx.shadowOffsetX = 0;
+				ctx.shadowOffsetY = 1;
+				ctx.shadowColor = 'rgba(0,0,0,0.3)';
 				ctx.fill();
-				ctx.strokeStyle = '#333';
+				ctx.restore();
+				ctx.strokeStyle = '#bbb';
 				ctx.stroke();
 			}
 			const offset = 2 * (CARD_VAL.length/2-1);
-			let padding = Math.floor(this.width / 25);
+			let padding = Math.floor(this.width / 15);
 			ctx.roundRect(this.x+padding, this.y-offset+padding, this.width-padding*2, 140-padding*2, (this.width-padding*2)/15);
 			ctx.fillStyle = '#77B97F';
 			ctx.fill();
@@ -205,17 +211,46 @@ let Stack = function(x, y) {
 			// ctx.font = (this.width/8)+"pt sans-serif";
 			// ctx.fillText('Done', this.x+10, this.y+25);
 		} else {
-			ctx.roundRect(this.x, this.y, this.width, 140, this.width/15);
+			
 			if (this.isDragonBase) {
 				/* dragon cell */
-				ctx.fillStyle = '#ddd';
-				ctx.fill();
-				ctx.fillStyle = '#777';
-				ctx.font = (this.width/8)+"pt sans-serif";
-				ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
-				ctx.fillText(this.dragonCount+'/'+DRAGON_NUM, this.x+10, this.y+50);
+				if (this.dragonCount > 0) {
+					for ( let i = 0; i < 1; i++) {
+						ctx.roundRect(this.x+i*3, this.y+i*3, this.width, 140, this.width/15);
+						ctx.fillStyle = '#eee';
+						ctx.save();
+						ctx.shadowBlur = 2;
+						ctx.shadowOffsetX = 0;
+						ctx.shadowOffsetY = 1;
+						ctx.shadowColor = 'rgba(0,0,0,0.3)';
+						ctx.fill();
+						ctx.restore();
+						ctx.strokeStyle = '#ccc';
+						ctx.stroke();
+
+						let padding = Math.floor(this.width / 15);
+						ctx.roundRect(this.x+padding, this.y+padding, this.width-padding*2, 140-padding*2, (this.width-padding*2)/15);
+						ctx.fillStyle = '#77B97F';
+						ctx.fill();
+
+						ctx.fillStyle = '#eee';
+						ctx.font = (this.width/8)+"pt sans-serif";
+						ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
+						ctx.fillText(this.dragonCount+'/'+DRAGON_NUM, this.x+10, this.y+50);
+					}
+
+				} else {
+					ctx.roundRect(this.x, this.y, this.width, 140, this.width/15);
+					ctx.fillStyle = '#ddd';
+					ctx.fill();
+					ctx.fillStyle = '#777';
+					ctx.font = (this.width/8)+"pt sans-serif";
+					ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
+					ctx.fillText(this.dragonCount+'/'+DRAGON_NUM, this.x+10, this.y+50);
+				}
 			} else {
 				/* empty slot */
+				ctx.roundRect(this.x, this.y, this.width, 140, this.width/15);
 				ctx.fillStyle = '#aaa';
 				ctx.fill();
 			}
