@@ -113,6 +113,15 @@ let Stack = function(x, y) {
 		} else {
 			this.cards.push(cards);
 		}
+		this.updateSpacing();
+	}
+
+	this.updateSpacing = function() {
+		if (this.cards.length > 9) {
+			this.spacing = Math.floor(320 / (this.cards.length-1));
+		} else {
+			this.spacing = 40;
+		}
 	}
 
 	this.getNumOfDragging = function() {
@@ -170,7 +179,9 @@ let Stack = function(x, y) {
 	}
 
 	this.removeDraggingCards = function() {
-		return this.cards.splice(this.dragging);
+		let cards = this.cards.splice(this.dragging);
+		this.updateSpacing();
+		return cards;
 	}
 
 	this.render = function(ctx) {
@@ -256,10 +267,11 @@ let Stack = function(x, y) {
 	this.checkDrag = function(x, y) {
 		let idx = -1;
 		// check dragging index
-		if (x > this.x && x < this.x+this.width && y > this.y) {
+		let pos = getMousePos(globalState.canvas, x, y);
+		if (pos.x > this.x && pos.x < this.x+this.width && pos.y > this.y) {
 			let selected = false;
 			for (let i = 0; i < this.cards.length; i++) {
-				if (y < this.y + (i+1) * this.spacing) {
+				if (pos.y < this.y + (i+1) * this.spacing) {
 					idx = i;
 					selected = true;
 					break;
@@ -267,7 +279,7 @@ let Stack = function(x, y) {
 			}
 			if (!selected
 					&& this.cards.length>0 
-					&& y < this.y + (this.cards.length-1) * this.spacing + 140) {
+					&& pos.y < this.y + (this.cards.length-1) * this.spacing + 140) {
 				idx = this.cards.length-1;
 			}
 		}
@@ -301,16 +313,16 @@ let Stack = function(x, y) {
 			this.ox = x - this.x;
 			this.oy = y - (this.y + this.spacing*this.dragging);
 		}
-
 		return idx;
 	}
 
 	this.checkDropOver = function(x, y) {
-		if (x > this.x && x < this.x+this.width && y > this.y) {
+		let pos = getMousePos(globalState.canvas, x, y);
+		if (pos.x > this.x && pos.x < this.x+this.width && pos.y > this.y) {
 			if (this.cards.length < 1) {
-				return y < this.y + 140;
+				return pos.y < this.y + 140;
 			}
-			return y < this.y + (this.cards.length-1) * this.spacing + 140;
+			return pos.y < this.y + (this.cards.length-1) * this.spacing + 140;
 		}
 	}
 }
@@ -428,8 +440,16 @@ function initStacks(stackList, decks) {
 	}
 }
 
+function getMousePos(canvas, cx, cy) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: (cx- rect.left) / (rect.right - rect.left) * canvas.width,
+        y: (cy - rect.top) / (rect.bottom - rect.top) * canvas.height
+    };
+}
+
 function registerPointerListeners(state) {
-	document.onpointerdown = function ({x, y}) {
+	state.canvas.onpointerdown = function ({x, y}) {
 		for (let i = 0; i < state.stackList.length; i++) {
 			let res = state.stackList[i].checkDrag(x, y);
 			if (res > -1) {
@@ -443,7 +463,7 @@ function registerPointerListeners(state) {
 		}
 	}
 	
-	document.onpointermove = function ({x, y}) {
+	state.canvas.onpointermove = function ({x, y}) {
 		if (state.dragFrom > -1) {
 			state.stackList[state.dragFrom].dx = x;
 			state.stackList[state.dragFrom].dy = y;
@@ -460,7 +480,7 @@ function registerPointerListeners(state) {
 		}
 	}
 	
-	document.onpointerup = function ({x, y}) {
+	state.canvas.onpointerup = function ({x, y}) {
 		if (state.dragFrom > -1) {
 			let isValidMove = false;
 			let fromStack = state.stackList[state.dragFrom];
