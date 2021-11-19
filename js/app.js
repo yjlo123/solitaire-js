@@ -558,11 +558,15 @@ function registerPointerListeners(state) {
 			state.dragFrom = -1;
 		}
 		redraw(state);
+		checkWin(state);
 	}
 }
 
 function animMoveBack(time) {
 	let stack = globalState.stackList[globalState.animStack];
+	if (!stack) {
+		return;
+	}
 
 	if (globalState.animStartTime === undefined) {
 		globalState.animStartTime = time;
@@ -658,6 +662,7 @@ let globalState = {
 	canvas: null,
 	canvasF: null,
 	ctx: null,
+	ctxF: null,
 
 	dragFrom: -1,
 	stackList: [],
@@ -675,11 +680,25 @@ let globalState = {
 	}
 }
 
+function checkWin(state) {
+	for (let i = 0; i < 5; i++) {
+		let stack = state.stackList[i];
+		if (stack.isBase && !stack.isDragonBase && !stack.isDone) {
+			return false;
+		}
+		if (stack.isDragonBase && stack.dragonCount !== DRAGON_NUM) {
+			return false;
+		}
+	}
+	console.log('stack true')
+	startFireWorkDisplay();
+	return true;
+}
+
 window.addEventListener('load', (event) => {
 	checkStats(globalState);
 	let newGameBtn = document.getElementById('btn-new-game');
 	newGameBtn.addEventListener("click", function() {
-
 		globalState.stackList = [];
 		globalState.deckCards = [];
 		globalState.dragFrom = -1;
@@ -692,6 +711,7 @@ window.addEventListener('load', (event) => {
 
 		globalState.animDealingCards = true;
 		requestAnimationFrame(animDealCard);
+		stopFireWorkDisplay();
 	});
 
 	globalState.canvas = document.getElementById('canvas-b');
