@@ -587,9 +587,12 @@ function animMoveBack(time) {
 }
 
 function animDealCard(time) {
+	if (!globalState.animDealingCards) {
+		return;
+	}
 	checkStats(globalState);
 
-	if (globalState.animStartTime === undefined) {
+	if (globalState.animStartTime === -1) {
 		globalState.animStartTime = time;
 	}
 	let timeUnits = (time - globalState.animStartTime)/10;
@@ -598,6 +601,7 @@ function animDealCard(time) {
 	const delay = 3;
 
 	if (timeUnits > 21 + globalState.deckCards.length * delay + overallDelay) {
+		globalState.animDealingCards = false;
 		globalState.initGame();
 		return;
 	}
@@ -654,12 +658,14 @@ let globalState = {
 	canvas: null,
 	canvasF: null,
 	ctx: null,
+
 	dragFrom: -1,
 	stackList: [],
 	deckCards: [],
 	dragonSymbol: DRAGON_VALS[Math.floor(Math.random() * DRAGON_VALS.length)],
 
 	animStack: -1,
+	animDealingCards: false,
 	animStartTime: -1,
 
 	initGame: function () {
@@ -671,14 +677,32 @@ let globalState = {
 
 window.addEventListener('load', (event) => {
 	checkStats(globalState);
+	let newGameBtn = document.getElementById('btn-new-game');
+	newGameBtn.addEventListener("click", function() {
+
+		globalState.stackList = [];
+		globalState.deckCards = [];
+		globalState.dragFrom = -1;
+		globalState.animStack = -1;
+		globalState.animStartTime = -1;
+		globalState.animDealingCards = false;
+
+		initSlots(globalState.stackList);
+		globalState.deckCards = initDecks();
+
+		globalState.animDealingCards = true;
+		requestAnimationFrame(animDealCard);
+	});
+
 	globalState.canvas = document.getElementById('canvas-b');
 	globalState.ctx = globalState.canvas.getContext('2d');
 
 	globalState.canvasF = document.getElementById('canvas-f');
 	globalState.ctxF = globalState.canvasF.getContext('2d');
+
 	initSlots(globalState.stackList);
 	globalState.deckCards = initDecks();
-	
+	globalState.animDealingCards = true;
 	requestAnimationFrame(animDealCard);
 });
 

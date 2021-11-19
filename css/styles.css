@@ -1,11 +1,16 @@
+html {
+	font-family: Verdana, sans-serif;
+}
+
 body {
 	margin:0;
 	touch-action:none;
 }
 
 .wrapper {
-	width: 100%;
+	width: 800px;
 	overflow: hidden;
+	margin: auto;
 }
 
 .stage {
@@ -37,4 +42,22 @@ body {
 	top: 0;
 	color: white;
 	font-size: 12px;
+}
+
+.bottom-bar {
+	background-color: #777;
+	padding: 6px;
+}
+
+.btn {
+	color: #ccc;
+	border: 2px solid #ccc;
+	display: inline-block;
+	padding: 3px;
+	cursor: pointer;
+}
+
+.btn:hover {
+	color: white;
+	background-color: #999;
 }
