@@ -9,10 +9,10 @@ const randomFloat = (min, max) => Math.random() * (max - min) + min
 const randomNumber = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
 
 const cleanFrame = (opacity) => {
-  $.globalCompositeOperation = 'source-over'
-  $.clearRect(0, 0, w, h);
+  $.globalCompositeOperation = 'xor'
   $.fillStyle = `rgba(0,0,0,${opacity})`
   $.fillRect(0, 0, w, h)
+
   $.globalCompositeOperation = 'lighter'
 }
 
@@ -164,8 +164,8 @@ function explode(firework) {
 
 function draw() {
   if (!STAGE.play) {
-      cleanFrame(0)
-      return
+    cleanFrame(0)
+    return
   }
   requestAnimationFrame(draw)
   cleanFrame(0.1)
@@ -179,14 +179,14 @@ function draw() {
 }
 
 function startFireWorkDisplay() {
-	if (STAGE.play) {
-		return
-	}
-	STAGE.play = true
+  if (STAGE.play) {
+    return
+  }
+  STAGE.play = true
   draw()
 }
 
 function stopFireWorkDisplay() {
-	STAGE.play = false
+  STAGE.play = false
   draw()
 }

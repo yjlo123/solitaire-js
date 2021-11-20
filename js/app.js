@@ -21,7 +21,7 @@ CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, ra
 	return this;
 }
 
-let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
+let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
 	this.x = x;
 	this.y = y;
 	this.width = width;
@@ -30,9 +30,9 @@ let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
 	this.suit = suit;
 	this.dealt = false;
 
-	this.render = function(ctx, shade=false) {
+	this.render = function (ctx, shade = false) {
 		ctx.save();
-		ctx.roundRect(this.x, this.y, this.width, this.height, this.width/15);
+		ctx.roundRect(this.x, this.y, this.width, this.height, this.width / 15);
 		if (shade) {
 			ctx.fillStyle = '#ddd';
 		} else {
@@ -54,21 +54,21 @@ let Card = function(val, suit=-1, x=0, y=0, width=100, height=140) {
 
 		// text
 		if (this.val >= 0) {
-			ctx.font = (this.width/8)+"pt sans-serif";
-			ctx.fillStyle = SUIT_COLORS[this.suit%2];
-			ctx.fillText(CARD_VAL[this.val], this.x+10, this.y+25);
+			ctx.font = (this.width / 8) + "pt sans-serif";
+			ctx.fillStyle = SUIT_COLORS[this.suit % 2];
+			ctx.fillText(CARD_VAL[this.val], this.x + 10, this.y + 25);
 			// ctx.font = (this.width/10)+"pt sans-serif";
 			// ctx.fillText(SUITS[this.suit], this.x+20, this.y+24);
 		} else {
-			ctx.font = (this.width/8)+"pt sans-serif";
+			ctx.font = (this.width / 8) + "pt sans-serif";
 			ctx.fillStyle = '#555';
-			ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
+			ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25);
 		}
 		ctx.restore();
 	}
 }
 
-let Stack = function(x, y) {
+let Stack = function (x, y) {
 	this.isBase = false;
 	this.isDragonBase = false;
 	this.dragonCount = 0;
@@ -92,7 +92,7 @@ let Stack = function(x, y) {
 	this.shadowLevel = DEFAULT_SHADOW_LEVEL;
 	this.shadowOffset = DEFAULT_SHADOW_OFFSET;
 
-	this.append = function(cards) {
+	this.append = function (cards) {
 		if (this.isDragonBase) {
 			if (Array.isArray(cards) && cards[0].val < 0) {
 				this.dragonCount += cards.length;
@@ -116,33 +116,33 @@ let Stack = function(x, y) {
 		this.updateSpacing();
 	}
 
-	this.updateSpacing = function() {
+	this.updateSpacing = function () {
 		if (this.cards.length > 9) {
-			this.spacing = Math.floor(320 / (this.cards.length-1));
+			this.spacing = Math.floor(320 / (this.cards.length - 1));
 		} else {
 			this.spacing = 40;
 		}
 	}
 
-	this.getNumOfDragging = function() {
+	this.getNumOfDragging = function () {
 		if (this.dragging < 0) {
 			return 0;
 		}
 		return this.cards.length - this.dragging;
 	}
 
-	this.allowedToDrop = function(cards) {
+	this.allowedToDrop = function (cards) {
 		if (this.isBase) {
 			if (this.isDone) {
 				return false;
 			}
 			if (this.isDragonBase) {
-				if (cards[0].val < 0){
+				if (cards[0].val < 0) {
 					return true;
 				}
 				return false;
 			} else {
-				if (cards[0].val < 0){
+				if (cards[0].val < 0) {
 					return false;
 				}
 				if (cards.length == CARD_VAL.length) {
@@ -156,13 +156,13 @@ let Stack = function(x, y) {
 		}
 
 		if (this.cards.length > 0) {
-			let bottom = this.cards[this.cards.length-1];
+			let bottom = this.cards[this.cards.length - 1];
 			let draggedTop = cards[0];
 			if (bottom.val < 0 && draggedTop.val < 0) {
 				return true;
 			}
 			if (bottom.val !== draggedTop.val + 1
-				|| bottom.suit%2 == draggedTop.suit%2) {
+				|| bottom.suit % 2 == draggedTop.suit % 2) {
 				return false;
 			}
 		}
@@ -170,7 +170,7 @@ let Stack = function(x, y) {
 		return true;
 	}
 
-	this.getDraggingCards = function() {
+	this.getDraggingCards = function () {
 		let res = [];
 		for (let i = this.dragging; i < this.cards.length; i++) {
 			res.push(this.cards[i]);
@@ -178,19 +178,19 @@ let Stack = function(x, y) {
 		return res;
 	}
 
-	this.removeDraggingCards = function() {
+	this.removeDraggingCards = function () {
 		let cards = this.cards.splice(this.dragging);
 		this.updateSpacing();
 		return cards;
 	}
 
-	this.render = function(ctx) {
+	this.render = function (ctx) {
 		ctx.save();
 		/* render background */
 		if (this.isDone) {
 			/* stack card back */
-			for (let i = 0; i < CARD_VAL.length/2; i++) {
-				ctx.roundRect(this.x, this.y-2*i, this.width, 140, this.width/15);
+			for (let i = 0; i < CARD_VAL.length / 2; i++) {
+				ctx.roundRect(this.x, this.y - 2 * i, this.width, 140, this.width / 15);
 				ctx.fillStyle = '#eee';
 				ctx.save();
 				ctx.shadowBlur = 2;
@@ -202,21 +202,17 @@ let Stack = function(x, y) {
 				ctx.strokeStyle = '#bbb';
 				ctx.stroke();
 			}
-			const offset = 2 * (CARD_VAL.length/2-1);
+			const offset = 2 * (CARD_VAL.length / 2 - 1);
 			let padding = Math.floor(this.width / 15);
-			ctx.roundRect(this.x+padding, this.y-offset+padding, this.width-padding*2, 140-padding*2, (this.width-padding*2)/15);
+			ctx.roundRect(this.x + padding, this.y - offset + padding, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
 			ctx.fillStyle = '#77B97F';
 			ctx.fill();
-			// ctx.fillStyle = '#eee';
-			// ctx.font = (this.width/8)+"pt sans-serif";
-			// ctx.fillText('Done', this.x+10, this.y+25);
 		} else {
-			
 			if (this.isDragonBase) {
 				/* dragon cell */
 				if (this.dragonCount > 0) {
-					for ( let i = 0; i < 1; i++) {
-						ctx.roundRect(this.x+i*3, this.y+i*3, this.width, 140, this.width/15);
+					for (let i = 0; i < 1; i++) {
+						ctx.roundRect(this.x + i * 3, this.y + i * 3, this.width, 140, this.width / 15);
 						ctx.fillStyle = '#eee';
 						ctx.save();
 						ctx.shadowBlur = 2;
@@ -229,28 +225,28 @@ let Stack = function(x, y) {
 						ctx.stroke();
 
 						let padding = Math.floor(this.width / 15);
-						ctx.roundRect(this.x+padding, this.y+padding, this.width-padding*2, 140-padding*2, (this.width-padding*2)/15);
+						ctx.roundRect(this.x + padding, this.y + padding, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
 						ctx.fillStyle = '#77B97F';
 						ctx.fill();
 
 						ctx.fillStyle = '#eee';
-						ctx.font = (this.width/8)+"pt sans-serif";
-						ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
-						ctx.fillText(this.dragonCount+'/'+DRAGON_NUM, this.x+10, this.y+50);
+						ctx.font = (this.width / 8) + "pt sans-serif";
+						ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25);
+						ctx.fillText(this.dragonCount + '/' + DRAGON_NUM, this.x + 10, this.y + 50);
 					}
 
 				} else {
-					ctx.roundRect(this.x, this.y, this.width, 140, this.width/15);
+					ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
 					ctx.fillStyle = '#ddd';
 					ctx.fill();
 					ctx.fillStyle = '#777';
-					ctx.font = (this.width/8)+"pt sans-serif";
-					ctx.fillText(globalState.dragonSymbol, this.x+10, this.y+25);
-					ctx.fillText(this.dragonCount+'/'+DRAGON_NUM, this.x+10, this.y+50);
+					ctx.font = (this.width / 8) + "pt sans-serif";
+					ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25);
+					ctx.fillText(this.dragonCount + '/' + DRAGON_NUM, this.x + 10, this.y + 50);
 				}
 			} else {
 				/* empty slot */
-				ctx.roundRect(this.x, this.y, this.width, 140, this.width/15);
+				ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
 				ctx.fillStyle = '#aaa';
 				ctx.fill();
 			}
@@ -268,9 +264,9 @@ let Stack = function(x, y) {
 		for (let i = 0; i < upTo; i++) {
 			let card = this.cards[i];
 			card.x = this.x;
-			card.y = this.y + i*this.spacing;
-			if (this.hover && i == upTo-1) {
-				card.render(ctx, shade=true);
+			card.y = this.y + i * this.spacing;
+			if (this.hover && i == upTo - 1) {
+				card.render(ctx, shade = true);
 			} else {
 				card.render(ctx);
 			}
@@ -280,7 +276,7 @@ let Stack = function(x, y) {
 		if (this.cards[upTo]) {
 			/* draw shadow */
 			ctx.save();
-			ctx.roundRect(this.dx-this.ox, this.dy-this.oy, this.width, 140+this.spacing*(this.cards.length-upTo-1), this.width/15);
+			ctx.roundRect(this.dx - this.ox, this.dy - this.oy, this.width, 140 + this.spacing * (this.cards.length - upTo - 1), this.width / 15);
 			ctx.shadowBlur = this.shadowLevel;
 			ctx.shadowOffsetX = this.shadowOffset;
 			ctx.shadowOffsetY = this.shadowOffset;
@@ -291,37 +287,37 @@ let Stack = function(x, y) {
 
 		for (let i = upTo; i < this.cards.length; i++) {
 			let card = this.cards[i];
-			card.x = this.dx-this.ox;
-			card.y = this.dy-this.oy + (i-upTo)*this.spacing;
+			card.x = this.dx - this.ox;
+			card.y = this.dy - this.oy + (i - upTo) * this.spacing;
 			card.render(ctx);
 		}
 
 		ctx.restore();
 	}
 
-	this.checkDrag = function(x, y) {
+	this.checkDrag = function (x, y) {
 		let idx = -1;
 		// check dragging index
 		let pos = getMousePos(globalState.canvas, x, y);
-		if (pos.x > this.x && pos.x < this.x+this.width && pos.y > this.y) {
+		if (pos.x > this.x && pos.x < this.x + this.width && pos.y > this.y) {
 			let selected = false;
 			for (let i = 0; i < this.cards.length; i++) {
-				if (pos.y < this.y + (i+1) * this.spacing) {
+				if (pos.y < this.y + (i + 1) * this.spacing) {
 					idx = i;
 					selected = true;
 					break;
 				}
 			}
 			if (!selected
-					&& this.cards.length>0 
-					&& pos.y < this.y + (this.cards.length-1) * this.spacing + 140) {
-				idx = this.cards.length-1;
+				&& this.cards.length > 0
+				&& pos.y < this.y + (this.cards.length - 1) * this.spacing + 140) {
+				idx = this.cards.length - 1;
 			}
 		}
-		
+
 		if (idx > -1) {
 			// check if drag allowed
-			
+
 			// check all dragon
 			let allDragon = true;
 			for (let i = idx; i < this.cards.length; i++) {
@@ -333,9 +329,9 @@ let Stack = function(x, y) {
 			if (!allDragon) {
 				// not all dragon
 				let prev = this.cards[idx];
-				for (let i = idx+1; i < this.cards.length; i++) {
+				for (let i = idx + 1; i < this.cards.length; i++) {
 					let current = this.cards[i]
-					if (current.val !== prev.val - 1 || current.suit%2 == prev.suit%2) {
+					if (current.val !== prev.val - 1 || current.suit % 2 == prev.suit % 2) {
 						return -1;
 					}
 					prev = this.cards[i];
@@ -346,36 +342,38 @@ let Stack = function(x, y) {
 			this.dragging = idx;
 			// update drag offset x, y
 			this.ox = x - this.x;
-			this.oy = y - (this.y + this.spacing*this.dragging);
+			this.oy = y - (this.y + this.spacing * this.dragging);
 		}
 		return idx;
 	}
 
-	this.checkDropOver = function(x, y) {
+	this.checkDropOver = function (x, y) {
 		let pos = getMousePos(globalState.canvas, x, y);
-		if (pos.x > this.x && pos.x < this.x+this.width && pos.y > this.y) {
+		if (pos.x > this.x && pos.x < this.x + this.width && pos.y > this.y) {
 			if (this.cards.length < 1) {
 				return pos.y < this.y + 140;
 			}
-			return pos.y < this.y + (this.cards.length-1) * this.spacing + 140;
+			return pos.y < this.y + (this.cards.length - 1) * this.spacing + 140;
 		}
 	}
 }
 
-function checkStats(state, limit=0) {
+function checkStats(state, limit = 0) {
 	let interval = -1
 	if (state.stats.lastTs > 0) {
 		interval = Date.now() - state.stats.lastTs;
 	}
 	if (interval > limit) {
-		let fps = Math.floor(1000 / interval);
-		document.getElementById("stats").innerHTML = fps + " fps";
+		if (state.showStats) {
+			let fps = Math.floor(1000 / interval);
+			document.getElementById("stats").innerHTML = fps + " fps";
+		}
 		state.stats.lastTs = Date.now();
 	}
 	return interval;
 }
 
-function redraw(state, limit=0, frontOnly=false) {
+function redraw(state, limit = 0, frontOnly = false) {
 	let interval = checkStats(state, limit);
 	if (interval > 0 && interval < limit) {
 		return;
@@ -391,7 +389,7 @@ function redraw(state, limit=0, frontOnly=false) {
 			state.stackList[i].render(state.ctx);
 		}
 	}
-	
+
 	state.ctxF.clearRect(0, 0, state.canvas.width, state.canvas.height);
 	if (state.dragFrom > -1) {
 		state.stackList[state.dragFrom].render(state.ctxF);
@@ -402,7 +400,7 @@ function redraw(state, limit=0, frontOnly=false) {
 }
 
 function shuffle(array) {
-	let currentIndex = array.length,  randomIndex;
+	let currentIndex = array.length, randomIndex;
 	while (currentIndex != 0) {
 		randomIndex = Math.floor(Math.random() * currentIndex);
 		currentIndex--;
@@ -413,6 +411,15 @@ function shuffle(array) {
 }
 
 function initSlots(stackList) {
+	const left = 50;
+	const top = 20;
+	const spacing = 150;
+	for (let i = 0; i < 5; i++) {
+		let slot = new Stack(50, 20);
+		slot.isBase = true;
+		slot.maxCardsAllowed = 1;
+	}
+
 	let slot0 = new Stack(50, 20);
 	slot0.isBase = true;
 	slot0.maxCardsAllowed = 1;
@@ -468,7 +475,7 @@ function initStacks(stackList, decks) {
 	for (let i = 0; i < columns; i++) {
 		let s = new Stack(stackLeft, stackTop);
 		for (let j = 0; j < rows; j++) {
-			let idx = i + columns*j;
+			let idx = i + columns * j;
 			if (idx >= decks.length) {
 				break;
 			}
@@ -480,15 +487,15 @@ function initStacks(stackList, decks) {
 }
 
 function getMousePos(canvas, cx, cy) {
-    var rect = canvas.getBoundingClientRect();
-    return {
-        x: (cx- rect.left) / (rect.right - rect.left) * canvas.width,
-        y: (cy - rect.top) / (rect.bottom - rect.top) * canvas.height
-    };
+	var rect = canvas.getBoundingClientRect();
+	return {
+		x: (cx - rect.left) / (rect.right - rect.left) * canvas.width,
+		y: (cy - rect.top) / (rect.bottom - rect.top) * canvas.height
+	};
 }
 
 function registerPointerListeners(state) {
-	state.canvasF.onpointerdown = function ({x, y}) {
+	state.canvasF.onpointerdown = function ({ x, y }) {
 		for (let i = 0; i < state.stackList.length; i++) {
 			let res = state.stackList[i].checkDrag(x, y);
 			if (res > -1) {
@@ -502,12 +509,12 @@ function registerPointerListeners(state) {
 		}
 		redraw(state);
 	}
-	
-	state.canvasF.onpointermove = function ({x, y}) {
+
+	state.canvasF.onpointermove = function ({ x, y }) {
 		if (state.dragFrom > -1) {
 			state.stackList[state.dragFrom].dx = x;
 			state.stackList[state.dragFrom].dy = y;
-	
+
 			for (let i = 0; i < state.stackList.length; i++) {
 				let stack = state.stackList[i];
 				if (stack.checkDropOver(x, y) && i !== state.dragFrom) {
@@ -525,8 +532,8 @@ function registerPointerListeners(state) {
 			redraw(state, 15, true);
 		}
 	}
-	
-	state.canvasF.onpointerup = function ({x, y}) {
+
+	state.canvasF.onpointerup = function ({ x, y }) {
 		if (state.dragFrom > -1) {
 			let isValidMove = false;
 			let fromStack = state.stackList[state.dragFrom];
@@ -571,7 +578,7 @@ function animMoveBack(time) {
 	if (globalState.animStartTime === undefined) {
 		globalState.animStartTime = time;
 	}
-	let timeUnits = (time - globalState.animStartTime)/globalState.animRate;
+	let timeUnits = (time - globalState.animStartTime) / globalState.animRate;
 
 	if (timeUnits > 16) {
 		stack.releasing = -1;
@@ -580,11 +587,11 @@ function animMoveBack(time) {
 		return;
 	}
 
-	stack.dx += (stack.x + stack.ox - stack.dx)/15 * timeUnits;
-	stack.dy += (stack.y + stack.oy  +stack.spacing * stack.releasing - stack.dy)/15 * timeUnits;
-	if (timeUnits > (16-DEFAULT_SHADOW_LEVEL) && stack.shadowLevel > 0) {
+	stack.dx += (stack.x + stack.ox - stack.dx) / 15 * timeUnits;
+	stack.dy += (stack.y + stack.oy + stack.spacing * stack.releasing - stack.dy) / 15 * timeUnits;
+	if (timeUnits > (16 - DEFAULT_SHADOW_LEVEL) && stack.shadowLevel > 0) {
 		stack.shadowLevel -= 1;
-		stack.shadowOffset = Math.max(stack.shadowOffset-1, 0);
+		stack.shadowOffset = Math.max(stack.shadowOffset - 1, 0);
 	}
 	redraw(globalState, 15, true);
 	requestAnimationFrame(animMoveBack);
@@ -599,7 +606,7 @@ function animDealCard(time) {
 	if (globalState.animStartTime === -1) {
 		globalState.animStartTime = time;
 	}
-	let timeUnits = (time - globalState.animStartTime)/10;
+	let timeUnits = (time - globalState.animStartTime) / 10;
 
 	const overallDelay = 80;
 	const delay = 3;
@@ -622,10 +629,10 @@ function animDealCard(time) {
 
 		const fromX = 350;
 		const fromY = 20;
-		let targetX = 50 + 120 * (i%6);
-		let targetY = 180 + 40 * Math.floor(i/6);
-		card.x = fromX + (targetX - fromX)/20 * timeOffset;
-		card.y = fromY + (targetY - fromY)/20 * timeOffset;
+		let targetX = 50 + 120 * (i % 6);
+		let targetY = 180 + 40 * Math.floor(i / 6);
+		card.x = fromX + (targetX - fromX) / 20 * timeOffset;
+		card.y = fromY + (targetY - fromY) / 20 * timeOffset;
 	}
 
 	/* redraw */
@@ -635,10 +642,10 @@ function animDealCard(time) {
 		globalState.stackList[i].render(globalState.ctx);
 	}
 
-	let remainingIdx = Math.floor((Math.max(timeUnits - overallDelay, 0))/delay);
+	let remainingIdx = Math.floor((Math.max(timeUnits - overallDelay, 0)) / delay);
 
 	/* remaining cards */
-	for (let i = globalState.deckCards.length-1; i > remainingIdx; i--) {
+	for (let i = globalState.deckCards.length - 1; i > remainingIdx; i--) {
 		globalState.deckCards[i].render(globalState.ctx);
 	}
 	/* dealt cards */
@@ -657,6 +664,7 @@ let globalState = {
 	stats: {
 		lastTs: Date.now()
 	},
+	showStats: false,
 	animRate: 20, // higher is slower
 
 	canvas: null,
@@ -690,7 +698,7 @@ function checkWin(state) {
 			return false;
 		}
 	}
-	console.log('stack true')
+	stopSnow();
 	startFireWorkDisplay();
 	return true;
 }
@@ -698,7 +706,7 @@ function checkWin(state) {
 window.addEventListener('load', (event) => {
 	checkStats(globalState);
 	let newGameBtn = document.getElementById('btn-new-game');
-	newGameBtn.addEventListener("click", function() {
+	newGameBtn.addEventListener("click", function () {
 		globalState.stackList = [];
 		globalState.deckCards = [];
 		globalState.dragFrom = -1;
@@ -712,6 +720,7 @@ window.addEventListener('load', (event) => {
 		globalState.animDealingCards = true;
 		requestAnimationFrame(animDealCard);
 		stopFireWorkDisplay();
+		playSnow();
 	});
 
 	globalState.canvas = document.getElementById('canvas-b');
@@ -724,5 +733,7 @@ window.addEventListener('load', (event) => {
 	globalState.deckCards = initDecks();
 	globalState.animDealingCards = true;
 	requestAnimationFrame(animDealCard);
+
+	playSnow();
 });
 
