@@ -1,4 +1,4 @@
-const c = document.getElementById('canvas-m')
+const c = document.getElementById('canvas-n')
 const $ = c.getContext('2d')
 const h = c.height
 const w = c.width
@@ -12,8 +12,11 @@ const cleanFrame = (opacity) => {
   $.globalCompositeOperation = 'xor'
   $.fillStyle = `rgba(0,0,0,${opacity})`
   $.fillRect(0, 0, w, h)
-
   $.globalCompositeOperation = 'lighter'
+}
+
+const clear = () => {
+	$.clearRect(0, 0, w, h)
 }
 
 class FireWork {
@@ -164,7 +167,7 @@ function explode(firework) {
 
 function draw() {
   if (!STAGE.play) {
-    cleanFrame(0)
+    clear()
     return
   }
   requestAnimationFrame(draw)

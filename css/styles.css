@@ -53,8 +53,16 @@ body {
 	color: #ccc;
 	border: 2px solid #ccc;
 	display: inline-block;
-	padding: 3px;
+	padding: 3px 6px;
 	cursor: pointer;
+}
+
+.right-btn {
+	float: right;
+}
+
+.margin-right-btn {
+	margin-right: 10px;
 }
 
 .btn:hover {

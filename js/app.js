@@ -1,10 +1,12 @@
 
 const CARD_VAL = ['6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const SUITS = ['♦', '♠', '♥', '♣'];
-const DRAGON_VALS = ['★', '✿', '❤', '♬', '☁', '❅', '☂'];
+const DRAGON_VALS = ['★', '✿', '❤', '♬', '☂'];
 const DRAGON_NUM = 4;
 const NUM_SUITS = 4;
-const SUIT_COLORS = ['red', 'green', 'blue'];
+const SUIT_COLORS = ['red', 'green'];
+const SUIT_COLORS_BLIND = ['#924900', '#006ddb'];
+
 const DEFAULT_SHADOW_LEVEL = 15;
 const DEFAULT_SHADOW_OFFSET = 4;
 
@@ -55,7 +57,11 @@ let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
 		// text
 		if (this.val >= 0) {
 			ctx.font = (this.width / 8) + "pt sans-serif";
-			ctx.fillStyle = SUIT_COLORS[this.suit % 2];
+			if (globalState.colorBlind) {
+				ctx.fillStyle = SUIT_COLORS_BLIND[this.suit % 2];
+			} else {
+				ctx.fillStyle = SUIT_COLORS[this.suit % 2];
+			}
 			ctx.fillText(CARD_VAL[this.val], this.x + 10, this.y + 25);
 			// ctx.font = (this.width/10)+"pt sans-serif";
 			// ctx.fillText(SUITS[this.suit], this.x+20, this.y+24);
@@ -184,75 +190,101 @@ let Stack = function (x, y) {
 		return cards;
 	}
 
-	this.render = function (ctx) {
-		ctx.save();
-		/* render background */
-		if (this.isDone) {
-			/* stack card back */
-			for (let i = 0; i < CARD_VAL.length / 2; i++) {
-				ctx.roundRect(this.x, this.y - 2 * i, this.width, 140, this.width / 15);
-				ctx.fillStyle = '#eee';
-				ctx.save();
-				ctx.shadowBlur = 2;
-				ctx.shadowOffsetX = 0;
-				ctx.shadowOffsetY = 1;
-				ctx.shadowColor = 'rgba(0,0,0,0.3)';
+	this.render = function (ctx=null, ctxF=null) {
+		if (ctx) {
+			ctx.save();
+			/* render background */
+			if (this.isDone) {
+				/* stack card back */
+				for (let i = 0; i < CARD_VAL.length / 2; i++) {
+					ctx.roundRect(this.x, this.y - 2 * i, this.width, 140, this.width / 15);
+					ctx.fillStyle = '#eee';
+					ctx.save();
+					ctx.shadowBlur = 2;
+					ctx.shadowOffsetX = 0;
+					ctx.shadowOffsetY = 1;
+					ctx.shadowColor = 'rgba(0,0,0,0.3)';
+					ctx.fill();
+					ctx.restore();
+					ctx.strokeStyle = '#bbb';
+					ctx.stroke();
+				}
+				const offset = 2 * (CARD_VAL.length / 2 - 1);
+				let padding = Math.floor(this.width / 15);
+				ctx.roundRect(this.x + padding, this.y - offset + padding, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
+				ctx.fillStyle = '#77B97F';
 				ctx.fill();
-				ctx.restore();
-				ctx.strokeStyle = '#bbb';
-				ctx.stroke();
-			}
-			const offset = 2 * (CARD_VAL.length / 2 - 1);
-			let padding = Math.floor(this.width / 15);
-			ctx.roundRect(this.x + padding, this.y - offset + padding, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
-			ctx.fillStyle = '#77B97F';
-			ctx.fill();
-		} else {
-			if (this.isDragonBase) {
-				/* dragon cell */
-				if (this.dragonCount > 0) {
-					for (let i = 0; i < 1; i++) {
-						ctx.roundRect(this.x + i * 3, this.y + i * 3, this.width, 140, this.width / 15);
-						ctx.fillStyle = '#eee';
-						ctx.save();
-						ctx.shadowBlur = 2;
-						ctx.shadowOffsetX = 0;
-						ctx.shadowOffsetY = 1;
-						ctx.shadowColor = 'rgba(0,0,0,0.3)';
+			} else {
+				if (this.isDragonBase) {
+					/* dragon cell */
+					if (this.dragonCount > 0) {
+						for (let i = 0; i < this.dragonCount; i++) {
+							ctx.roundRect(this.x, this.y - i * 2, this.width, 140, this.width / 15);
+							ctx.fillStyle = '#eee';
+							ctx.save();
+							ctx.shadowBlur = 2;
+							ctx.shadowOffsetX = 0;
+							ctx.shadowOffsetY = 1;
+							ctx.shadowColor = 'rgba(0,0,0,0.3)';
+							ctx.fill();
+							ctx.restore();
+							ctx.strokeStyle = '#ccc';
+							ctx.stroke();
+	
+							let stackOffsetY = 2 * (this.dragonCount - 1);
+							let padding = Math.floor(this.width / 15);
+							ctx.roundRect(this.x + padding, this.y + padding - stackOffsetY, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
+							ctx.fillStyle = '#77B97F';
+							ctx.fill();
+	
+							ctx.fillStyle = '#eee';
+							ctx.font = (this.width / 8) + "pt sans-serif";
+							ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25 - stackOffsetY);
+							ctx.fillText(this.dragonCount + '/' + DRAGON_NUM, this.x + 10, this.y + 50 - stackOffsetY);
+						}
+	
+					} else {
+						ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
+						ctx.fillStyle = '#aaa';
 						ctx.fill();
-						ctx.restore();
+
+						ctx.save();
+						ctx.shadowColor = 'rgba(0,0,0,0.4)';
+						ctx.shadowBlur = 3;
+						ctx.shadowOffsetX = 1;
+						ctx.shadowOffsetY = 1;
+						ctx.globalCompositeOperation = 'source-atop';
+						ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
 						ctx.strokeStyle = '#ccc';
 						ctx.stroke();
+						ctx.globalCompositeOperation = 'source-over';
+						ctx.restore();
 
-						let padding = Math.floor(this.width / 15);
-						ctx.roundRect(this.x + padding, this.y + padding, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
-						ctx.fillStyle = '#77B97F';
-						ctx.fill();
-
-						ctx.fillStyle = '#eee';
+						ctx.fillStyle = '#777';
 						ctx.font = (this.width / 8) + "pt sans-serif";
 						ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25);
 						ctx.fillText(this.dragonCount + '/' + DRAGON_NUM, this.x + 10, this.y + 50);
 					}
-
 				} else {
+					/* empty cell */
 					ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
-					ctx.fillStyle = '#ddd';
+					ctx.fillStyle = '#aaa';
 					ctx.fill();
-					ctx.fillStyle = '#777';
-					ctx.font = (this.width / 8) + "pt sans-serif";
-					ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25);
-					ctx.fillText(this.dragonCount + '/' + DRAGON_NUM, this.x + 10, this.y + 50);
+
+					ctx.shadowColor = 'rgba(0,0,0,0.4)';
+					ctx.shadowBlur = 3;
+					ctx.shadowOffsetX = 1;
+					ctx.shadowOffsetY = 1;
+					ctx.globalCompositeOperation = 'source-atop';
+					ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
+					ctx.strokeStyle = '#ccc';
+					ctx.stroke();
+					ctx.globalCompositeOperation = 'source-over';
 				}
-			} else {
-				/* empty slot */
-				ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
-				ctx.fillStyle = '#aaa';
-				ctx.fill();
 			}
+			ctx.restore();
 		}
 
-		/* render remaining */
 		let upTo = this.cards.length;
 		if (this.dragging > -1) {
 			upTo = this.dragging;
@@ -261,38 +293,42 @@ let Stack = function (x, y) {
 			upTo = this.releasing;
 		}
 
-		for (let i = 0; i < upTo; i++) {
-			let card = this.cards[i];
-			card.x = this.x;
-			card.y = this.y + i * this.spacing;
-			if (this.hover && i == upTo - 1) {
-				card.render(ctx, shade = true);
-			} else {
-				card.render(ctx);
+		/* render remaining */
+		if (ctx !== null) {
+			for (let i = 0; i < upTo; i++) {
+				let card = this.cards[i];
+				card.x = this.x;
+				card.y = this.y + i * this.spacing;
+				if (this.hover && i == upTo - 1) {
+					card.render(ctx, shade = true);
+				} else {
+					card.render(ctx);
+				}
 			}
 		}
 
+
 		/* render dragging */
-		if (this.cards[upTo]) {
-			/* draw shadow */
-			ctx.save();
-			ctx.roundRect(this.dx - this.ox, this.dy - this.oy, this.width, 140 + this.spacing * (this.cards.length - upTo - 1), this.width / 15);
-			ctx.shadowBlur = this.shadowLevel;
-			ctx.shadowOffsetX = this.shadowOffset;
-			ctx.shadowOffsetY = this.shadowOffset;
-			ctx.shadowColor = 'rgba(0,0,0,0.3)';
-			ctx.fill();
-			ctx.restore();
+		if (ctxF != null) {
+			if (this.cards[upTo]) {
+				/* draw shadow */
+				ctxF.save();
+				ctxF.roundRect(this.dx - this.ox, this.dy - this.oy, this.width, 140 + this.spacing * (this.cards.length - upTo - 1), this.width / 15);
+				ctxF.shadowBlur = this.shadowLevel;
+				ctxF.shadowOffsetX = this.shadowOffset;
+				ctxF.shadowOffsetY = this.shadowOffset;
+				ctxF.shadowColor = 'rgba(0,0,0,0.3)';
+				ctxF.fill();
+				ctxF.restore();
+			}
+	
+			for (let i = upTo; i < this.cards.length; i++) {
+				let card = this.cards[i];
+				card.x = this.dx - this.ox;
+				card.y = this.dy - this.oy + (i - upTo) * this.spacing;
+				card.render(ctxF);
+			}
 		}
-
-		for (let i = upTo; i < this.cards.length; i++) {
-			let card = this.cards[i];
-			card.x = this.dx - this.ox;
-			card.y = this.dy - this.oy + (i - upTo) * this.spacing;
-			card.render(ctx);
-		}
-
-		ctx.restore();
 	}
 
 	this.checkDrag = function (x, y) {
@@ -373,7 +409,7 @@ function checkStats(state, limit = 0) {
 	return interval;
 }
 
-function redraw(state, limit = 0, frontOnly = false) {
+function redraw(state, limit = 0, frontOnly=false) {
 	let interval = checkStats(state, limit);
 	if (interval > 0 && interval < limit) {
 		return;
@@ -383,19 +419,16 @@ function redraw(state, limit = 0, frontOnly = false) {
 	if (!frontOnly) {
 		state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
 		for (let i = 0; i < state.stackList.length; i++) {
-			if (i == state.dragFrom || i == state.animStack) {
-				continue;
-			}
-			state.stackList[i].render(state.ctx);
+			state.stackList[i].render(state.ctx, state.ctxF);
 		}
 	}
 
 	state.ctxF.clearRect(0, 0, state.canvas.width, state.canvas.height);
 	if (state.dragFrom > -1) {
-		state.stackList[state.dragFrom].render(state.ctxF);
+		state.stackList[state.dragFrom].render(null, state.ctxF);
 	}
 	if (state.animStack > -1) {
-		state.stackList[state.animStack].render(state.ctxF);
+		state.stackList[state.animStack].render(null, state.ctxF);
 	}
 }
 
@@ -564,8 +597,11 @@ function registerPointerListeners(state) {
 			fromStack.dragging = -1;
 			state.dragFrom = -1;
 		}
-		redraw(state);
-		checkWin(state);
+
+		if (!state.gameWin) {
+			redraw(state);
+			checkWin(state);
+		}
 	}
 }
 
@@ -661,6 +697,10 @@ function animDealCard(time) {
 }
 
 let globalState = {
+	colorBlind: false,
+	showWeather: true,
+	gameWin: false,
+
 	stats: {
 		lastTs: Date.now()
 	},
@@ -688,19 +728,34 @@ let globalState = {
 	}
 }
 
-function checkWin(state) {
-	for (let i = 0; i < 5; i++) {
-		let stack = state.stackList[i];
-		if (stack.isBase && !stack.isDragonBase && !stack.isDone) {
-			return false;
-		}
-		if (stack.isDragonBase && stack.dragonCount !== DRAGON_NUM) {
-			return false;
+function checkWin(state, testSkip=false) {
+	if (state.gameWin) {
+		return true;
+	}
+	if (!testSkip) {
+		for (let i = 0; i < 5; i++) {
+			let stack = state.stackList[i];
+			if (stack.isBase && !stack.isDragonBase && !stack.isDone) {
+				return false;
+			}
+			if (stack.isDragonBase && stack.dragonCount !== DRAGON_NUM) {
+				return false;
+			}
 		}
 	}
-	stopSnow();
+
 	startFireWorkDisplay();
+	state.gameWin = true;
 	return true;
+}
+
+function setWeather(value) {
+	globalState.showWeather = value;
+	if (value) {
+		playSnow();
+	} else {
+		stopSnow();
+	}
 }
 
 window.addEventListener('load', (event) => {
@@ -720,7 +775,18 @@ window.addEventListener('load', (event) => {
 		globalState.animDealingCards = true;
 		requestAnimationFrame(animDealCard);
 		stopFireWorkDisplay();
-		playSnow();
+		globalState.gameWin = false;
+	});
+
+	let colorblindBtn = document.getElementById('btn-colorblind');
+	colorblindBtn.addEventListener("click", function () {
+		globalState.colorBlind = !globalState.colorBlind;
+		redraw(globalState);
+	});
+
+	let weatherBtn = document.getElementById('btn-weather');
+	weatherBtn.addEventListener("click", function () {
+		setWeather(!globalState.showWeather);
 	});
 
 	globalState.canvas = document.getElementById('canvas-b');
@@ -734,6 +800,8 @@ window.addEventListener('load', (event) => {
 	globalState.animDealingCards = true;
 	requestAnimationFrame(animDealCard);
 
-	playSnow();
+	setWeather(true);
+
+	//checkWin(globalState, true);
 });
 

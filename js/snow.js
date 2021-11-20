@@ -1,5 +1,7 @@
 let SNOW = {
     drawFn: null,
+    clearFn: null,
+    stopped: false,
     timerID: null
 }
 
@@ -25,6 +27,12 @@ window.onload = function () {
     function draw() {
         ctx.clearRect(0, 0, W, H);
 
+        if (SNOW.stopped) {
+            console.log('stopped')
+            ctx.fill();
+            return;
+        }
+
         ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
         ctx.beginPath();
         for (var i = 0; i < mp; i++) {
@@ -34,6 +42,12 @@ window.onload = function () {
         }
         ctx.fill();
         update();
+    }
+
+    function clear() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.beginPath();
+        ctx.fill();
     }
 
     //Function to move the snowflakes
@@ -73,12 +87,16 @@ window.onload = function () {
     }
 
     SNOW.drawFn = draw;
+    SNOW.clearFn = clear;
 }
 
 function playSnow() {
     SNOW.timerID = setInterval(SNOW.drawFn, 33);
+    SNOW.stopped = false;
 }
 
 function stopSnow() {
-    clearInterval(SNOW.timerID)
+    SNOW.stopped = true;
+    clearInterval(SNOW.timerID);
+    SNOW.clearFn();
 }
