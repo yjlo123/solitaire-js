@@ -7,6 +7,20 @@ const NUM_SUITS = 4;
 const SUIT_COLORS = ['red', 'green'];
 const SUIT_COLORS_BLIND = ['#924900', '#006ddb'];
 
+const CARD_VALUE_OFFSET = [
+	[0, 0],
+	[0, 0],
+	[0, 0],
+	[0, 0],
+	[-5, 0],
+	[0, 0],
+	[-2, 0],
+	[-1, 0],
+];
+
+const COLORBLIND_RECT = [5, 8, 20, 22];
+const COLORBLIND_CIRCLE = [15, 19, 11];
+
 const DEFAULT_SHADOW_LEVEL = 15;
 const DEFAULT_SHADOW_OFFSET = 4;
 
@@ -56,13 +70,25 @@ let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
 
 		// text
 		if (this.val >= 0) {
-			ctx.font = (this.width / 8) + "pt sans-serif";
+			let fontSize = (this.width / 8)
+			ctx.font = fontSize + "pt sans-serif";
 			if (globalState.colorBlind) {
+				ctx.beginPath();
+				if (this.suit % 2 === 0) {
+					let coor = COLORBLIND_CIRCLE;
+					ctx.arc(this.x + coor[0], this.y + coor[1], coor[2], 0, 2 * Math.PI);
+				} else {
+					let coor = COLORBLIND_RECT;
+					ctx.rect(this.x + coor[0], this.y + coor[1], coor[2], coor[3]);
+				}
 				ctx.fillStyle = SUIT_COLORS_BLIND[this.suit % 2];
+				ctx.fill();
+				ctx.fillStyle = 'white';
 			} else {
 				ctx.fillStyle = SUIT_COLORS[this.suit % 2];
 			}
-			ctx.fillText(CARD_VAL[this.val], this.x + 10, this.y + 25);
+			let textOffset = CARD_VALUE_OFFSET[this.val];
+			ctx.fillText(CARD_VAL[this.val], this.x + 10 + textOffset[0], this.y + 25);
 			// ctx.font = (this.width/10)+"pt sans-serif";
 			// ctx.fillText(SUITS[this.suit], this.x+20, this.y+24);
 		} else {
@@ -700,6 +726,7 @@ let globalState = {
 	colorBlind: false,
 	showWeather: true,
 	gameWin: false,
+	showBug: false,
 
 	stats: {
 		lastTs: Date.now()
@@ -789,6 +816,17 @@ window.addEventListener('load', (event) => {
 		setWeather(!globalState.showWeather);
 	});
 
+	let bugBtn = document.getElementById('btn-bug');
+	bugBtn.addEventListener("click", function () {
+		if (globalState.showBug) {
+			globalState.showBug = false;
+			bugStop();
+		} else {
+			globalState.showBug = true;
+			bugStart();
+		}
+	});
+
 	globalState.canvas = document.getElementById('canvas-b');
 	globalState.ctx = globalState.canvas.getContext('2d');
 
@@ -803,5 +841,8 @@ window.addEventListener('load', (event) => {
 	setWeather(true);
 
 	//checkWin(globalState, true);
+
+	globalState.showBug = true;
+	bugStart();
 });
 

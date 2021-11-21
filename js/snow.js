@@ -28,7 +28,6 @@ window.onload = function () {
         ctx.clearRect(0, 0, W, H);
 
         if (SNOW.stopped) {
-            console.log('stopped')
             ctx.fill();
             return;
         }

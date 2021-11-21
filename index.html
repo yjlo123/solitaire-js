@@ -26,16 +26,18 @@
 <body>
 	<div class="wrapper">
 		<div class="stage">
-			<canvas id="canvas-b" class="back" width=800 height=650></canvas>
-			<canvas id="canvas-m" class="front" width=800 height=650></canvas>
-			<canvas id="canvas-n" class="front" width=800 height=650></canvas>
-			<canvas id="canvas-f" class="front" width=800 height=650></canvas>
+			<canvas id="canvas-b" class="back" width=800 height=650></canvas><!-- background -->
+			<canvas id="canvas-l" class="front" width=800 height=650></canvas><!-- bug -->
+			<canvas id="canvas-m" class="front" width=800 height=650></canvas><!-- weather -->
+			<canvas id="canvas-n" class="front" width=800 height=650></canvas><!-- firework -->
+			<canvas id="canvas-f" class="front" width=800 height=650></canvas><!-- foreground -->
 			<div id="stats"></div>
 		</div>
 		<div class="bottom-bar">
 			<div class="btn" id="btn-new-game">New Game</div>
 			<div class="btn right-btn" id="btn-colorblind">Colorblind</div>
 			<div class="btn right-btn margin-right-btn" id="btn-weather">Weather</div>
+			<div class="btn right-btn margin-right-btn" id="btn-bug">Bug</div>
 		</div>
 		<div class="instructions">
 			<p>Cards can be stacked and moved only if they are of alternating colors and in decreasing order (K, Q, J,
@@ -46,6 +48,7 @@
 			<div>
 			</div>
 
+			<script src="js/bug.js"></script>
 			<script src="js/snow.js"></script>
 			<script src="js/firework.js"></script>
 			<script src="js/app.js"></script>
