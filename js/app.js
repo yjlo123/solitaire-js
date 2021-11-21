@@ -1,5 +1,7 @@
 
 const CARD_VAL = ['6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const CARD_VAL_CN = ['陆', '柒', '捌', '玖', '拾', '钩', '圈', '凯'];
+const CARD_VAL_EM = ['6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '1️⃣', '2️⃣', '3️⃣'];
 const SUITS = ['♦', '♠', '♥', '♣'];
 const DRAGON_VALS = ['★', '✿', '❤', '♬', '☂'];
 const DRAGON_NUM = 4;
@@ -18,8 +20,23 @@ const CARD_VALUE_OFFSET = [
 	[-1, 0],
 ];
 
+const LANG = {
+	'btn_new_game': ['New Game', '新游戏', '🌟&nbsp;'],
+	'btn_bug': ['Bug', 'Bug', '🐞&nbsp;'],
+	'btn_weather': ['Weather', '天气', '🌤️&nbsp;'],
+	'btn_colorblind': ['Colorblind', '色觉辅助', '🎨&nbsp;'],
+	'btn_lang': ['En', '中', '🌏&nbsp;'],
+	'text_instruct_1': ['Cards can be stacked and moved only if they are of alternating colors and in decreasing order (K, Q, J, 10, 9, 8, 7, 6).', '纸牌可以被移动和叠放，但是只能按照颜色交替的【凯圈钩拾玖捌柒陆】降序叠放。', '🃏⬇️⬆️➕📚🟥🟩📶3️⃣2️⃣1️⃣🔟9️⃣8️⃣7️⃣6️⃣'],
+	'text_instruct_2': ['The four free cells can store one card or a completed stack.', '上方四个空位可以存储一张非花牌或者一整叠牌（从凯到陆）。', '4️⃣🆓⬅️🃏✅📚✅'],
+	'text_instruct_3': ['Flower cards can be stacked and moved to the flower cell.', '花牌可以叠放，并且只能被移动到中间的花牌空位。', '🌼🃏🌼📚➡️🌼🆓'],
+	'text_instruct_4': ['To win, sort the cards into four completed stacks and move them to the free cells.', '要想获胜，需要将四套整叠牌移到上面四个空位，并将花牌移到花牌空位。', '🏆️📶4️⃣📚➡️4️⃣🆓'],
+}
+
 const COLORBLIND_RECT = [5, 8, 20, 22];
+const COLORBLIND_RECT_CN = [9, 8, 19, 22];
+
 const COLORBLIND_CIRCLE = [15, 19, 11];
+const COLORBLIND_CIRCLE_CN = [18, 19, 11];
 
 const DEFAULT_SHADOW_LEVEL = 15;
 const DEFAULT_SHADOW_OFFSET = 4;
@@ -76,9 +93,15 @@ let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
 				ctx.beginPath();
 				if (this.suit % 2 === 0) {
 					let coor = COLORBLIND_CIRCLE;
+					if (globalState.lang === 1) {
+						coor = COLORBLIND_CIRCLE_CN;
+					}
 					ctx.arc(this.x + coor[0], this.y + coor[1], coor[2], 0, 2 * Math.PI);
 				} else {
 					let coor = COLORBLIND_RECT;
+					if (globalState.lang === 1) {
+						coor = COLORBLIND_RECT_CN;
+					}
 					ctx.rect(this.x + coor[0], this.y + coor[1], coor[2], coor[3]);
 				}
 				ctx.fillStyle = SUIT_COLORS_BLIND[this.suit % 2];
@@ -88,7 +111,13 @@ let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
 				ctx.fillStyle = SUIT_COLORS[this.suit % 2];
 			}
 			let textOffset = CARD_VALUE_OFFSET[this.val];
-			ctx.fillText(CARD_VAL[this.val], this.x + 10 + textOffset[0], this.y + 25);
+			let cardValSet = CARD_VAL;
+			if (globalState.lang === 1) {
+				cardValSet = CARD_VAL_CN;
+				textOffset = [0, 0];
+			}
+
+			ctx.fillText(cardValSet[this.val], this.x + 10 + textOffset[0], this.y + 25);
 			// ctx.font = (this.width/10)+"pt sans-serif";
 			// ctx.fillText(SUITS[this.suit], this.x+20, this.y+24);
 		} else {
@@ -727,6 +756,7 @@ let globalState = {
 	showWeather: true,
 	gameWin: false,
 	showBug: false,
+	lang: 0,
 
 	stats: {
 		lastTs: Date.now()
@@ -825,6 +855,21 @@ window.addEventListener('load', (event) => {
 			globalState.showBug = true;
 			bugStart();
 		}
+	});
+
+	let langBtn = document.getElementById('btn-lang');
+	langBtn.addEventListener("click", function () {
+		globalState.lang = (globalState.lang+1)%(LANG['btn_new_game'].length);
+		newGameBtn.innerHTML = LANG['btn_new_game'][globalState.lang];
+		bugBtn.innerHTML = LANG['btn_bug'][globalState.lang];
+		colorblindBtn.innerHTML = LANG['btn_colorblind'][globalState.lang];
+		weatherBtn.innerHTML = LANG['btn_weather'][globalState.lang];
+		langBtn.innerHTML = LANG['btn_lang'][globalState.lang];
+		document.getElementById('instruct-1').innerHTML = LANG['text_instruct_1'][globalState.lang];
+		document.getElementById('instruct-2').innerHTML = LANG['text_instruct_2'][globalState.lang];
+		document.getElementById('instruct-3').innerHTML = LANG['text_instruct_3'][globalState.lang];
+		document.getElementById('instruct-4').innerHTML = LANG['text_instruct_4'][globalState.lang];
+		redraw(globalState);
 	});
 
 	globalState.canvas = document.getElementById('canvas-b');

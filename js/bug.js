@@ -32,7 +32,6 @@ let TheBug = function () {
     }
 
     this.randomDirection = function() {
-        //this.direction = Math.floor(Math.random() * 360);
         let dir = Math.round(Math.random())===0?-1:1;
         this.direction = Math.abs(this.direction + 90*dir) % 360;
         this.moveTargetCount = Math.floor(Math.random() * 100);

@@ -55,6 +55,8 @@ body {
 	display: inline-block;
 	padding: 3px 6px;
 	cursor: pointer;
+	font-size: 14px;
+	line-height: 1.4em;
 
 	-webkit-touch-callout: none; /* iOS Safari */
 	-webkit-user-select: none; /* Safari */
@@ -75,4 +77,19 @@ body {
 .btn:hover {
 	color: white;
 	background-color: #999;
+}
+
+.footer {
+	text-align: center;
+	margin-top: 15px;
+	padding-bottom: 20px;
+}
+
+.footer a {
+	color: gray;
+	text-decoration: none;
+}
+.footer a:hover {
+	color: #aaa;
+	text-decoration: underline;
 }
