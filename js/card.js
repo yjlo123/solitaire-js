@@ -28,7 +28,7 @@ let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
             that.flipStartTime = time;
         }
         let timeUnits = Math.ceil((time - that.flipStartTime) / 20);
-        if (timeUnits > 21) {
+        if (timeUnits > 25) {
             // flip done
             return;
         }
@@ -60,6 +60,7 @@ let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
             that.redrawFunc();
         } else {
             that.skewLeft = 0;
+            that.skewRight = 0;
             that.xOff = 0;
             that.width = 100;
             that.redrawFunc();

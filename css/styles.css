@@ -115,6 +115,10 @@ body {
 	user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
 }
 
+.btn-on {
+	background-color: rgba(50, 50, 50, .2);
+}
+
 .right-btn {
 	float: right;
 }

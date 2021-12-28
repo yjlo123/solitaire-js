@@ -29,32 +29,6 @@ const COLORBLIND_CIRCLE_CN = [18, 19, 11];
 const DEFAULT_SHADOW_LEVEL = 15;
 const DEFAULT_SHADOW_OFFSET = 4;
 
-CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, radius) {
-	if (width < 2 * radius) radius = width / 2;
-	if (height < 2 * radius) radius = height / 2;
-	this.beginPath();
-	this.moveTo(x + radius, y);
-	this.arcTo(x + width, y, x + width, y + height, radius);
-	this.arcTo(x + width, y + height, x, y + height, radius);
-	this.arcTo(x, y + height, x, y, radius);
-	this.arcTo(x, y, x + width, y, radius);
-	this.closePath();
-	return this;
-}
-// roundTrapezoid
-CanvasRenderingContext2D.prototype.roundSkewRect = function (x, y, width, height, radius, skewRight=5, skewLeft=0) {
-	if (width < 2 * radius) radius = width / 2;
-	if (height < 2 * radius) radius = height / 2;
-	this.beginPath();
-	this.moveTo(x + radius, y-skewLeft);
-	this.arcTo(x + width, y-skewRight, x + width, y + height, radius);
-	this.arcTo(x + width, y + height+skewRight, x, y + height, radius);
-	this.arcTo(x, y + height+skewLeft, x, y, radius);
-	this.arcTo(x, y-skewLeft, x + width, y, radius);
-	this.closePath();
-	return this;
-}
-
 function checkStats(state, limit = 0) {
 	let interval = -1
 	if (state.stats.lastTs > 0) {
@@ -90,6 +64,44 @@ function redraw(state, limit = 0, frontOnly=false) {
 	}
 	if (state.animStack > -1) {
 		state.stackList[state.animStack].render(null, state.ctxF);
+	}
+}
+
+function clearHomeCanvas(state) {
+	state.ctxH.clearRect(0, 0, state.canvas.width, state.canvas.height);
+}
+
+function redrawHome(state) {
+	state.ctxH.clearRect(0, 0, state.canvas.width, state.canvas.height);
+	state.ctxH.fillStyle = "#c9c9c9";
+	state.ctxH.fillRect(0, 0, 800, 650);
+	//state.ctxH.globalAlpha = 0.9;
+
+	let x = 20;
+	let y = globalState.animHomeOffset - 180;
+
+
+	for (let k = 0; k < 5; k++) {
+		let col = globalState.homeDecks[k]; 
+		for (let i = 0; i < 6; i++) {
+			col[i].x = x;
+			col[i].y = y;
+			col[i].render(state.ctxH);
+			y += 180;
+		}
+		x += 165;
+		y = globalState.animHomeOffset - 180;
+		if (k % 2 == 0) {
+			y -= 95;
+		}
+	}
+
+	if (globalState.animHomeOffset >= 180) {
+		for (let i = 0; i < 6; i++) {
+			let col = globalState.homeDecks[i];
+			globalState.homeDecks[i] = col.slice(col.length-1).concat(col.slice(0, col.length-1));
+		}
+		globalState.animHomeOffset = 0;
 	}
 }
 
@@ -188,234 +200,6 @@ function getMousePos(canvas, cx, cy) {
 	};
 }
 
-function registerPointerListeners(state) {
-	state.canvasF.onpointerdown = function ({ x, y }) {
-		for (let i = 0; i < state.stackList.length; i++) {
-			let res = state.stackList[i].checkDrag(x, y);
-			if (res > -1) {
-				state.dragFrom = i;
-				let stack = state.stackList[state.dragFrom]
-				stack.dx = x;
-				stack.dy = y;
-				stack.shadowLevel = DEFAULT_SHADOW_LEVEL;
-				stack.shadowOffset = DEFAULT_SHADOW_OFFSET;
-			}
-		}
-		redraw(state);
-	}
-
-	state.canvasF.onpointermove = function ({ x, y }) {
-		if (state.dragFrom > -1) {
-			state.stackList[state.dragFrom].dx = x;
-			state.stackList[state.dragFrom].dy = y;
-
-			for (let i = 0; i < state.stackList.length; i++) {
-				let stack = state.stackList[i];
-				if (stack.checkDropOver(x, y) && i !== state.dragFrom) {
-					if (!stack.hover) {
-						stack.hover = true;
-						redraw(state);
-					}
-				} else {
-					if (stack.hover) {
-						stack.hover = false;
-						redraw(state);
-					}
-				}
-			}
-			redraw(state, 15, true);
-		}
-	}
-
-	state.canvasF.onpointerup = function ({ x, y }) {
-		if (state.dragFrom > -1) {
-			let isValidMove = false;
-			let fromStack = state.stackList[state.dragFrom];
-			// drop to stack
-			for (let i = 0; i < state.stackList.length; i++) {
-				state.stackList[i].hover = false;
-				if (i == state.dragFrom) {
-					continue;
-				}
-				if (state.stackList[i].checkDropOver(x, y)) {
-					// intend to drop to this stack
-					let toStack = state.stackList[i];
-					if (toStack.allowedToDrop(fromStack.getDraggingCards())) {
-						let cards = fromStack.removeDraggingCards();
-						toStack.append(cards);
-						isValidMove = true;
-					}
-					break;
-				}
-			}
-			if (!isValidMove) {
-				state.animStartTime = undefined;
-				state.animStack = state.dragFrom;
-				fromStack.releasing = fromStack.dragging;
-				requestAnimationFrame(animMoveBack);
-			}
-
-			fromStack.dragging = -1;
-			state.dragFrom = -1;
-		}
-
-		if (!state.gameWin) {
-			redraw(state);
-
-			checkReveal(state);
-
-			checkWin(state);
-		}
-	}
-}
-
-function animMoveBack(time) {
-	let stack = globalState.stackList[globalState.animStack];
-	if (!stack) {
-		return;
-	}
-
-	if (globalState.animStartTime === undefined) {
-		globalState.animStartTime = time;
-	}
-	let timeUnits = (time - globalState.animStartTime) / globalState.animRate;
-
-	if (timeUnits > 16) {
-		stack.releasing = -1;
-		globalState.animStack = -1;
-		redraw(globalState);
-		return;
-	}
-
-	stack.dx += (stack.x + stack.ox - stack.dx) / 15 * timeUnits;
-	stack.dy += (stack.y + stack.oy + stack.spacing * stack.releasing - stack.dy) / 15 * timeUnits;
-	if (timeUnits > (16 - DEFAULT_SHADOW_LEVEL) && stack.shadowLevel > 0) {
-		stack.shadowLevel -= 1;
-		stack.shadowOffset = Math.max(stack.shadowOffset - 1, 0);
-	}
-	redraw(globalState, 15, true);
-	requestAnimationFrame(animMoveBack);
-}
-
-function animDealCard(time) {
-	if (!globalState.animDealingCards) {
-		return;
-	}
-	checkStats(globalState);
-
-	if (globalState.animStartTime === -1) {
-		globalState.animStartTime = time;
-	}
-	let timeUnits = (time - globalState.animStartTime) / 10;
-
-	const overallDelay = 80;
-	const delay = 3;
-
-	if (timeUnits > 21 + globalState.deckCards.length * delay + overallDelay) {
-		globalState.animDealingCards = false;
-		globalState.initGame();
-		return;
-	}
-
-	for (let i = 0; i < globalState.deckCards.length; i++) {
-		let card = globalState.deckCards[i];
-		let timeOffset = timeUnits - overallDelay - delay * i;
-		if (timeOffset < 0) {
-			timeOffset = 0;
-		} else if (timeOffset > 20) {
-			timeOffset = 20;
-			card.dealt = true;
-		}
-
-		const fromX = 350;
-		const fromY = 20;
-		let targetX = 50 + 120 * (i % 6);
-		let targetY = 180 + 40 * Math.floor(i / 6);
-		card.x = fromX + (targetX - fromX) / 20 * timeOffset;
-		card.y = fromY + (targetY - fromY) / 20 * timeOffset;
-	}
-
-	/* redraw */
-	globalState.ctx.clearRect(0, 0, globalState.canvas.width, globalState.canvas.height);
-	/* free cells */
-	for (let i = 0; i < 5; i++) {
-		globalState.stackList[i].render(globalState.ctx);
-	}
-
-	let remainingIdx = Math.floor((Math.max(timeUnits - overallDelay, 0)) / delay);
-
-	/* remaining cards */
-	for (let i = globalState.deckCards.length - 1; i > remainingIdx; i--) {
-		globalState.deckCards[i].render(globalState.ctx);
-	}
-	/* dealt cards */
-	for (let i = 0; i <= remainingIdx; i++) {
-		if (i >= globalState.deckCards.length) {
-			// to prevent out of bound
-			continue;
-		}
-		globalState.deckCards[i].render(globalState.ctx);
-	}
-
-	requestAnimationFrame(animDealCard);
-}
-
-let globalState = {
-	colorBlind: false,
-	showWeather: true,
-	hideCount: 0,
-	gameWin: false,
-	showBug: false,
-	lang: 0,
-
-	stats: {
-		lastTs: Date.now()
-	},
-	showStats: false,
-	animRate: 20, // higher is slower
-
-	showHomeScreen: true,
-	homeCards: [],
-	homeDecks: [],
-	animHomeTime: -1,
-	animHomeOffset: 0,
-
-	fadeOutCallback: function(){},
-	fadeInCallback: function(){},
-	transitionOpacity: 0,
-	transitionTime: 0,
-
-	canvas: null,
-	canvasF: null, // foreground
-	canvasH: null, // home
-	canvasT: null, // transition
-	ctx: null,
-	ctxF: null,
-	ctxH: null,
-	ctxT: null,
-
-	dragFrom: -1,
-	stackList: [],
-	deckCards: [],
-	dragonSymbol: DRAGON_VALS[Math.floor(Math.random() * DRAGON_VALS.length)],
-
-	animStack: -1,
-	animDealingCards: false,
-	animStartTime: -1,
-
-	redraw: function() {
-		redraw(globalState);
-	},
-
-	initGame: function () {
-		initStacks(globalState.stackList, globalState.deckCards);
-		redraw(globalState);
-		registerPointerListeners(globalState);
-
-		checkReveal(globalState);
-	}
-}
-
 function checkReveal(state) {
 	for (let i = 0; i < state.stackList.length; i++) {
 		let stack = state.stackList[i];
@@ -488,8 +272,81 @@ function startGame(hideCount=0) {
 		requestAnimationFrame(animFadeIn);
 	};
 	requestAnimationFrame(animFadeOut);
+
+	if (globalState.bgmOn && !globalState.bgmPlaying) {
+		playBgm(true);
+	}
 }
 
+function playBgm(val) {
+	if (val) {
+		globalState.bgm.play();
+		globalState.bgmPlaying = true;
+	} else {
+		globalState.bgm.pause();
+		globalState.bgmPlaying = false;
+	}
+}
+
+let globalState = {
+	colorBlind: false,
+	showWeather: true,
+	hideCount: 0,
+	gameWin: false,
+	showBug: false,
+	lang: 0,
+
+	stats: {
+		lastTs: Date.now()
+	},
+	showStats: false,
+	animRate: 20, // higher is slower
+
+	showHomeScreen: true,
+	homeCards: [],
+	homeDecks: [],
+	animHomeTime: -1,
+	animHomeOffset: 0,
+
+	fadeOutCallback: function(){},
+	fadeInCallback: function(){},
+	transitionOpacity: 0,
+	transitionTime: 0,
+
+	bgmOn: true,
+	bgmPlaying: false,
+	bgm: null,
+
+	canvas: null,
+	canvasF: null, // foreground
+	canvasH: null, // home
+	canvasT: null, // transition
+	ctx: null,
+	ctxF: null,
+	ctxH: null,
+	ctxT: null,
+
+	dragFrom: -1,
+	stackList: [],
+	deckCards: [],
+	dragonSymbol: DRAGON_VALS[Math.floor(Math.random() * DRAGON_VALS.length)],
+
+	animStack: -1,
+	animDealingCards: false,
+	animStartTime: -1,
+
+	redraw: function() {
+		redraw(globalState);
+	},
+
+	initGame: function () {
+		initStacks(globalState.stackList, globalState.deckCards);
+		redraw(globalState);
+		registerPointerListeners(globalState);
+
+		checkReveal(globalState);
+	}
+}
 
 window.addEventListener('load', (event) => {
 	checkStats(globalState);
@@ -552,11 +409,23 @@ window.addEventListener('load', (event) => {
 	colorblindBtn.addEventListener("click", function () {
 		globalState.colorBlind = !globalState.colorBlind;
 		redraw(globalState);
+
+		if (colorblindBtn.classList.contains("btn-on")) {
+			colorblindBtn.classList.remove("btn-on");
+		} else {
+			colorblindBtn.classList.add("btn-on");
+		}
 	});
 
 	let weatherBtn = document.getElementById('btn-weather');
 	weatherBtn.addEventListener("click", function () {
 		setWeather(!globalState.showWeather);
+
+		if (weatherBtn.classList.contains("btn-on")) {
+			weatherBtn.classList.remove("btn-on");
+		} else {
+			weatherBtn.classList.add("btn-on");
+		}
 	});
 
 	let bugBtn = document.getElementById('btn-bug');
@@ -568,11 +437,28 @@ window.addEventListener('load', (event) => {
 			globalState.showBug = true;
 			bugStart();
 		}
+		if (bugBtn.classList.contains("btn-on")) {
+			bugBtn.classList.remove("btn-on");
+		} else {
+			bugBtn.classList.add("btn-on");
+		}
+	});
+
+	let musicBtn = document.getElementById('btn-music');
+	musicBtn.addEventListener("click", function () {
+		globalState.bgmOn = !globalState.bgmOn;
+		playBgm(globalState.bgmOn);
+		if (musicBtn.classList.contains("btn-on")) {
+			musicBtn.classList.remove("btn-on");
+		} else {
+			musicBtn.classList.add("btn-on");
+		}
 	});
 
 	let langBtn = document.getElementById('btn-lang');
 	langBtn.addEventListener("click", function () {
 		globalState.lang = (globalState.lang+1)%(LANG['btn_new_game'].length);
+		musicBtn.innerHTML = LANG['btn_music'][globalState.lang];
 		bugBtn.innerHTML = LANG['btn_bug'][globalState.lang];
 		colorblindBtn.innerHTML = LANG['btn_colorblind'][globalState.lang];
 		weatherBtn.innerHTML = LANG['btn_weather'][globalState.lang];
@@ -616,103 +502,10 @@ window.addEventListener('load', (event) => {
 	requestAnimationFrame(animColumn);
 	document.getElementById("canvas-f").style.display = "none";
 
-	//checkWin(globalState, true);
+	globalState.bgm = document.createElement("audio");
+	globalState.bgm.src = "sound/green-tea.mp3";
+	globalState.bgm.loop = true;
 
+	//checkWin(globalState, true);
 	//bugStart();
 });
-
-function animFadeOut(time) {
-	if (time - globalState.transitionTime < 30) {
-		return requestAnimationFrame(animFadeOut);
-	}
-	globalState.transitionTime = time;
-
-	if (globalState.transitionOpacity >= 1) {
-		globalState.fadeOutCallback();
-		return;
-	}
-
-	globalState.transitionOpacity = Math.min(globalState.transitionOpacity+0.1, 1);
-
-	globalState.ctxT.clearRect(0, 0, globalState.canvas.width, globalState.canvas.height);
-	globalState.ctxT.fillStyle = "#555";
-	globalState.ctxT.globalAlpha = globalState.transitionOpacity;
-	globalState.ctxT.fillRect(0, 0, 800, 650);
-
-	requestAnimationFrame(animFadeOut);
-}
-
-function animFadeIn(time) {
-	if (time - globalState.transitionTime < 30) {
-		return requestAnimationFrame(animFadeIn);
-	}
-	globalState.transitionTime = time;
-
-	if (globalState.transitionOpacity <= 0) {
-		globalState.fadeInCallback();
-		return;
-	}
-
-	globalState.transitionOpacity = Math.max(globalState.transitionOpacity-0.1, 0);
-
-	globalState.ctxT.clearRect(0, 0, globalState.canvas.width, globalState.canvas.height);
-	globalState.ctxT.fillStyle = "#555";
-	globalState.ctxT.globalAlpha = globalState.transitionOpacity;
-	globalState.ctxT.fillRect(0, 0, 800, 650);
-
-	requestAnimationFrame(animFadeIn);
-}
-
-function clearHomeCanvas(state) {
-	state.ctxH.clearRect(0, 0, state.canvas.width, state.canvas.height);
-}
-
-function redrawHome(state) {
-	state.ctxH.clearRect(0, 0, state.canvas.width, state.canvas.height);
-	state.ctxH.fillStyle = "#c9c9c9";
-	state.ctxH.fillRect(0, 0, 800, 650);
-	//state.ctxH.globalAlpha = 0.9;
-
-	let x = 20;
-	let y = globalState.animHomeOffset - 180;
-
-
-	for (let k = 0; k < 5; k++) {
-		let col = globalState.homeDecks[k]; 
-		for (let i = 0; i < 6; i++) {
-			col[i].x = x;
-			col[i].y = y;
-			col[i].render(state.ctxH);
-			y += 180;
-		}
-		x += 165;
-		y = globalState.animHomeOffset - 180;
-		if (k % 2 == 0) {
-			y -= 95;
-		}
-	}
-
-	if (globalState.animHomeOffset >= 180) {
-		for (let i = 0; i < 6; i++) {
-			let col = globalState.homeDecks[i];
-			globalState.homeDecks[i] = col.slice(col.length-1).concat(col.slice(0, col.length-1));
-		}
-		globalState.animHomeOffset = 0;
-	}
-}
-
-function animColumn(time) {
-	if (!globalState.showHomeScreen) {
-		return;
-	}
-
-	if (time - globalState.animHomeTime < 50) {
-		return requestAnimationFrame(animColumn);
-	}
-	globalState.animHomeTime = time;
-
-	globalState.animHomeOffset += 1;
-
-	redrawHome(globalState);
-	requestAnimationFrame(animColumn);
-}

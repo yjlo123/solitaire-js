@@ -4,6 +4,11 @@ const LANG = {
 		'新游戏',
 		'🌟&nbsp;'
 	],
+	'btn_music': [
+		'Music',
+		'音乐',
+		'🎵&nbsp;'
+	],
 	'btn_bug': [
 		'Bug',
 		'Bug',
