@@ -86,7 +86,7 @@ let BUG = {
 
     drawFn: null,
     clearFn: null,
-    stopped: false,
+    stopped: true,
     timerID: null,
 
     animStartTime: -1

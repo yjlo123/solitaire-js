@@ -20,18 +20,6 @@ const CARD_VALUE_OFFSET = [
 	[-1, 0],
 ];
 
-const LANG = {
-	'btn_new_game': ['New Game', '新游戏', '🌟&nbsp;'],
-	'btn_bug': ['Bug', 'Bug', '🐞&nbsp;'],
-	'btn_weather': ['Weather', '天气', '🌤️&nbsp;'],
-	'btn_colorblind': ['Colorblind', '色觉辅助', '🎨&nbsp;'],
-	'btn_lang': ['En', '中', '🌏&nbsp;'],
-	'text_instruct_1': ['Cards can be stacked and moved only if they are of alternating colors and in decreasing order (K, Q, J, 10, 9, 8, 7, 6).', '纸牌可以被移动和叠放，但是只能按照颜色交替的【凯圈钩拾玖捌柒陆】降序叠放。', '🃏⬇️⬆️➕📚🟥🟩📶3️⃣2️⃣1️⃣🔟9️⃣8️⃣7️⃣6️⃣'],
-	'text_instruct_2': ['The four free cells can store one card or a completed stack.', '上方四个空位可以存储一张非花牌或者一整叠牌（从凯到陆）。', '4️⃣🆓⬅️🃏✅📚✅'],
-	'text_instruct_3': ['Flower cards can be stacked and moved to the flower cell.', '花牌可以叠放，并且只能被移动到中间的花牌空位。', '🌼🃏🌼📚➡️🌼🆓'],
-	'text_instruct_4': ['To win, sort the cards into four completed stacks and move them to the free cells.', '要想获胜，需要将四套整叠牌移到上面四个空位，并将花牌移到花牌空位。', '🏆️📶4️⃣📚➡️4️⃣🆓'],
-}
-
 const COLORBLIND_RECT = [5, 8, 20, 22];
 const COLORBLIND_RECT_CN = [9, 8, 19, 22];
 
@@ -53,400 +41,18 @@ CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, ra
 	this.closePath();
 	return this;
 }
-
-let Card = function (val, suit = -1, x = 0, y = 0, width = 100, height = 140) {
-	this.x = x;
-	this.y = y;
-	this.width = width;
-	this.height = height;
-	this.val = val;
-	this.suit = suit;
-	this.dealt = false;
-
-	this.render = function (ctx, shade = false) {
-		ctx.save();
-		ctx.roundRect(this.x, this.y, this.width, this.height, this.width / 15);
-		if (shade) {
-			ctx.fillStyle = '#ddd';
-		} else {
-			ctx.fillStyle = '#eee';
-		}
-		if (this.dealt) {
-			ctx.save();
-			ctx.shadowBlur = 3;
-			ctx.shadowOffsetX = 0;
-			ctx.shadowOffsetY = 1;
-			ctx.shadowColor = 'rgba(0,0,0,0.3)';
-			ctx.fill();
-			ctx.restore();
-		} else {
-			ctx.fill();
-		}
-		ctx.strokeStyle = '#bbb';
-		ctx.stroke();
-
-		// text
-		if (this.val >= 0) {
-			let fontSize = (this.width / 8)
-			ctx.font = fontSize + "pt sans-serif";
-			if (globalState.colorBlind) {
-				ctx.beginPath();
-				if (this.suit % 2 === 0) {
-					let coor = COLORBLIND_CIRCLE;
-					if (globalState.lang === 1) {
-						coor = COLORBLIND_CIRCLE_CN;
-					}
-					ctx.arc(this.x + coor[0], this.y + coor[1], coor[2], 0, 2 * Math.PI);
-				} else {
-					let coor = COLORBLIND_RECT;
-					if (globalState.lang === 1) {
-						coor = COLORBLIND_RECT_CN;
-					}
-					ctx.rect(this.x + coor[0], this.y + coor[1], coor[2], coor[3]);
-				}
-				ctx.fillStyle = SUIT_COLORS_BLIND[this.suit % 2];
-				ctx.fill();
-				ctx.fillStyle = 'white';
-			} else {
-				ctx.fillStyle = SUIT_COLORS[this.suit % 2];
-			}
-			let textOffset = CARD_VALUE_OFFSET[this.val];
-			let cardValSet = CARD_VAL;
-			if (globalState.lang === 1) {
-				cardValSet = CARD_VAL_CN;
-				textOffset = [0, 0];
-			}
-
-			ctx.fillText(cardValSet[this.val], this.x + 10 + textOffset[0], this.y + 25);
-			// ctx.font = (this.width/10)+"pt sans-serif";
-			// ctx.fillText(SUITS[this.suit], this.x+20, this.y+24);
-		} else {
-			ctx.font = (this.width / 8) + "pt sans-serif";
-			ctx.fillStyle = '#555';
-			ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25);
-		}
-		ctx.restore();
-	}
-}
-
-let Stack = function (x, y) {
-	this.isBase = false;
-	this.isDragonBase = false;
-	this.dragonCount = 0;
-	this.isDone = false;
-	this.maxCardsAllowed = 99;
-	this.cards = [];
-	this.x = x;
-	this.y = y;
-	this.width = 100;
-	this.spacing = 40;
-	this.dragging = -1;
-	this.releasing = -1;
-	this.isAnimating = false;
-	// dragging x, y
-	this.dx = 0;
-	this.dy = 0;
-	// dragging offset x, y
-	this.ox = 0;
-	this.oy = 0;
-	this.hover = false;
-	this.shadowLevel = DEFAULT_SHADOW_LEVEL;
-	this.shadowOffset = DEFAULT_SHADOW_OFFSET;
-
-	this.append = function (cards) {
-		if (this.isDragonBase) {
-			if (Array.isArray(cards) && cards[0].val < 0) {
-				this.dragonCount += cards.length;
-				return;
-			} else if (cards.val < 0) {
-				this.dragonCount += 1;
-				return;
-			}
-		}
-		if (this.isBase && cards.length === CARD_VAL.length) {
-			this.isDone = true;
-			return;
-		}
-		if (Array.isArray(cards)) {
-			for (let i = 0; i < cards.length; i++) {
-				this.cards.push(cards[i]);
-			}
-		} else {
-			this.cards.push(cards);
-		}
-		this.updateSpacing();
-	}
-
-	this.updateSpacing = function () {
-		if (this.cards.length > 9) {
-			this.spacing = Math.floor(320 / (this.cards.length - 1));
-		} else {
-			this.spacing = 40;
-		}
-	}
-
-	this.getNumOfDragging = function () {
-		if (this.dragging < 0) {
-			return 0;
-		}
-		return this.cards.length - this.dragging;
-	}
-
-	this.allowedToDrop = function (cards) {
-		if (this.isBase) {
-			if (this.isDone) {
-				return false;
-			}
-			if (this.isDragonBase) {
-				if (cards[0].val < 0) {
-					return true;
-				}
-				return false;
-			} else {
-				if (cards[0].val < 0) {
-					return false;
-				}
-				if (cards.length == CARD_VAL.length) {
-					return true;
-				}
-			}
-		}
-
-		if (this.cards.length + cards.length > this.maxCardsAllowed) {
-			return false;
-		}
-
-		if (this.cards.length > 0) {
-			let bottom = this.cards[this.cards.length - 1];
-			let draggedTop = cards[0];
-			if (bottom.val < 0 && draggedTop.val < 0) {
-				return true;
-			}
-			if (bottom.val !== draggedTop.val + 1
-				|| bottom.suit % 2 == draggedTop.suit % 2) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	this.getDraggingCards = function () {
-		let res = [];
-		for (let i = this.dragging; i < this.cards.length; i++) {
-			res.push(this.cards[i]);
-		}
-		return res;
-	}
-
-	this.removeDraggingCards = function () {
-		let cards = this.cards.splice(this.dragging);
-		this.updateSpacing();
-		return cards;
-	}
-
-	this.render = function (ctx=null, ctxF=null) {
-		if (ctx) {
-			ctx.save();
-			/* render background */
-			if (this.isDone) {
-				/* stack card back */
-				for (let i = 0; i < CARD_VAL.length / 2; i++) {
-					ctx.roundRect(this.x, this.y - 2 * i, this.width, 140, this.width / 15);
-					ctx.fillStyle = '#eee';
-					ctx.save();
-					ctx.shadowBlur = 2;
-					ctx.shadowOffsetX = 0;
-					ctx.shadowOffsetY = 1;
-					ctx.shadowColor = 'rgba(0,0,0,0.3)';
-					ctx.fill();
-					ctx.restore();
-					ctx.strokeStyle = '#bbb';
-					ctx.stroke();
-				}
-				const offset = 2 * (CARD_VAL.length / 2 - 1);
-				let padding = Math.floor(this.width / 15);
-				ctx.roundRect(this.x + padding, this.y - offset + padding, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
-				ctx.fillStyle = '#77B97F';
-				ctx.fill();
-			} else {
-				if (this.isDragonBase) {
-					/* dragon cell */
-					if (this.dragonCount > 0) {
-						for (let i = 0; i < this.dragonCount; i++) {
-							ctx.roundRect(this.x, this.y - i * 2, this.width, 140, this.width / 15);
-							ctx.fillStyle = '#eee';
-							ctx.save();
-							ctx.shadowBlur = 2;
-							ctx.shadowOffsetX = 0;
-							ctx.shadowOffsetY = 1;
-							ctx.shadowColor = 'rgba(0,0,0,0.3)';
-							ctx.fill();
-							ctx.restore();
-							ctx.strokeStyle = '#ccc';
-							ctx.stroke();
-	
-							let stackOffsetY = 2 * (this.dragonCount - 1);
-							let padding = Math.floor(this.width / 15);
-							ctx.roundRect(this.x + padding, this.y + padding - stackOffsetY, this.width - padding * 2, 140 - padding * 2, (this.width - padding * 2) / 15);
-							ctx.fillStyle = '#77B97F';
-							ctx.fill();
-	
-							ctx.fillStyle = '#eee';
-							ctx.font = (this.width / 8) + "pt sans-serif";
-							ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25 - stackOffsetY);
-							ctx.fillText(this.dragonCount + '/' + DRAGON_NUM, this.x + 10, this.y + 50 - stackOffsetY);
-						}
-	
-					} else {
-						ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
-						ctx.fillStyle = '#aaa';
-						ctx.fill();
-
-						ctx.save();
-						ctx.shadowColor = 'rgba(0,0,0,0.4)';
-						ctx.shadowBlur = 3;
-						ctx.shadowOffsetX = 1;
-						ctx.shadowOffsetY = 1;
-						ctx.globalCompositeOperation = 'source-atop';
-						ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
-						ctx.strokeStyle = '#ccc';
-						ctx.stroke();
-						ctx.globalCompositeOperation = 'source-over';
-						ctx.restore();
-
-						ctx.fillStyle = '#777';
-						ctx.font = (this.width / 8) + "pt sans-serif";
-						ctx.fillText(globalState.dragonSymbol, this.x + 10, this.y + 25);
-						ctx.fillText(this.dragonCount + '/' + DRAGON_NUM, this.x + 10, this.y + 50);
-					}
-				} else {
-					/* empty cell */
-					ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
-					ctx.fillStyle = '#aaa';
-					ctx.fill();
-
-					ctx.shadowColor = 'rgba(0,0,0,0.4)';
-					ctx.shadowBlur = 3;
-					ctx.shadowOffsetX = 1;
-					ctx.shadowOffsetY = 1;
-					ctx.globalCompositeOperation = 'source-atop';
-					ctx.roundRect(this.x, this.y, this.width, 140, this.width / 15);
-					ctx.strokeStyle = '#ccc';
-					ctx.stroke();
-					ctx.globalCompositeOperation = 'source-over';
-				}
-			}
-			ctx.restore();
-		}
-
-		let upTo = this.cards.length;
-		if (this.dragging > -1) {
-			upTo = this.dragging;
-		}
-		if (this.releasing > -1) {
-			upTo = this.releasing;
-		}
-
-		/* render remaining */
-		if (ctx !== null) {
-			for (let i = 0; i < upTo; i++) {
-				let card = this.cards[i];
-				card.x = this.x;
-				card.y = this.y + i * this.spacing;
-				if (this.hover && i == upTo - 1) {
-					card.render(ctx, shade = true);
-				} else {
-					card.render(ctx);
-				}
-			}
-		}
-
-
-		/* render dragging */
-		if (ctxF != null) {
-			if (this.cards[upTo]) {
-				/* draw shadow */
-				ctxF.save();
-				ctxF.roundRect(this.dx - this.ox, this.dy - this.oy, this.width, 140 + this.spacing * (this.cards.length - upTo - 1), this.width / 15);
-				ctxF.shadowBlur = this.shadowLevel;
-				ctxF.shadowOffsetX = this.shadowOffset;
-				ctxF.shadowOffsetY = this.shadowOffset;
-				ctxF.shadowColor = 'rgba(0,0,0,0.3)';
-				ctxF.fill();
-				ctxF.restore();
-			}
-	
-			for (let i = upTo; i < this.cards.length; i++) {
-				let card = this.cards[i];
-				card.x = this.dx - this.ox;
-				card.y = this.dy - this.oy + (i - upTo) * this.spacing;
-				card.render(ctxF);
-			}
-		}
-	}
-
-	this.checkDrag = function (x, y) {
-		let idx = -1;
-		// check dragging index
-		let pos = getMousePos(globalState.canvas, x, y);
-		if (pos.x > this.x && pos.x < this.x + this.width && pos.y > this.y) {
-			let selected = false;
-			for (let i = 0; i < this.cards.length; i++) {
-				if (pos.y < this.y + (i + 1) * this.spacing) {
-					idx = i;
-					selected = true;
-					break;
-				}
-			}
-			if (!selected
-				&& this.cards.length > 0
-				&& pos.y < this.y + (this.cards.length - 1) * this.spacing + 140) {
-				idx = this.cards.length - 1;
-			}
-		}
-
-		if (idx > -1) {
-			// check if drag allowed
-
-			// check all dragon
-			let allDragon = true;
-			for (let i = idx; i < this.cards.length; i++) {
-				if (this.cards[i].val >= 0) {
-					allDragon = false;
-					break;
-				}
-			}
-			if (!allDragon) {
-				// not all dragon
-				let prev = this.cards[idx];
-				for (let i = idx + 1; i < this.cards.length; i++) {
-					let current = this.cards[i]
-					if (current.val !== prev.val - 1 || current.suit % 2 == prev.suit % 2) {
-						return -1;
-					}
-					prev = this.cards[i];
-				}
-			}
-
-			// ok to drag
-			this.dragging = idx;
-			// update drag offset x, y
-			this.ox = x - this.x;
-			this.oy = y - (this.y + this.spacing * this.dragging);
-		}
-		return idx;
-	}
-
-	this.checkDropOver = function (x, y) {
-		let pos = getMousePos(globalState.canvas, x, y);
-		if (pos.x > this.x && pos.x < this.x + this.width && pos.y > this.y) {
-			if (this.cards.length < 1) {
-				return pos.y < this.y + 140;
-			}
-			return pos.y < this.y + (this.cards.length - 1) * this.spacing + 140;
-		}
-	}
+// roundTrapezoid
+CanvasRenderingContext2D.prototype.roundSkewRect = function (x, y, width, height, radius, skewRight=5, skewLeft=0) {
+	if (width < 2 * radius) radius = width / 2;
+	if (height < 2 * radius) radius = height / 2;
+	this.beginPath();
+	this.moveTo(x + radius, y-skewLeft);
+	this.arcTo(x + width, y-skewRight, x + width, y + height, radius);
+	this.arcTo(x + width, y + height+skewRight, x, y + height, radius);
+	this.arcTo(x, y + height+skewLeft, x, y, radius);
+	this.arcTo(x, y-skewLeft, x + width, y, radius);
+	this.closePath();
+	return this;
 }
 
 function checkStats(state, limit = 0) {
@@ -655,6 +261,9 @@ function registerPointerListeners(state) {
 
 		if (!state.gameWin) {
 			redraw(state);
+
+			checkReveal(state);
+
 			checkWin(state);
 		}
 	}
@@ -754,6 +363,7 @@ function animDealCard(time) {
 let globalState = {
 	colorBlind: false,
 	showWeather: true,
+	hideCount: 0,
 	gameWin: false,
 	showBug: false,
 	lang: 0,
@@ -761,13 +371,21 @@ let globalState = {
 	stats: {
 		lastTs: Date.now()
 	},
-	showStats: false,
+	showStats: true,
 	animRate: 20, // higher is slower
 
+	showHomeScreen: true,
+	homeCards: [],
+	homeDecks: [],
+	animHomeTime: -1,
+	animHomeOffset: 0,
+
 	canvas: null,
-	canvasF: null,
+	canvasF: null, // foreground
+	canvasH: null, // home
 	ctx: null,
 	ctxF: null,
+	ctxH: null,
 
 	dragFrom: -1,
 	stackList: [],
@@ -778,10 +396,28 @@ let globalState = {
 	animDealingCards: false,
 	animStartTime: -1,
 
+	redraw: function() {
+		redraw(globalState);
+	},
+
 	initGame: function () {
 		initStacks(globalState.stackList, globalState.deckCards);
 		redraw(globalState);
 		registerPointerListeners(globalState);
+
+		checkReveal(globalState);
+	}
+}
+
+function checkReveal(state) {
+	for (let i = 0; i < state.stackList.length; i++) {
+		let stack = state.stackList[i];
+		if (stack.cards.length > 0) {
+			let lastCard = stack.cards[stack.cards.length-1];
+			if (!lastCard.revealed) {
+				lastCard.reveal(state);
+			}
+		}
 	}
 }
 
@@ -815,24 +451,81 @@ function setWeather(value) {
 	}
 }
 
+function startGame(hideCount=0) {
+	globalState.stackList = [];
+	globalState.deckCards = [];
+	globalState.dragFrom = -1;
+	globalState.animStack = -1;
+	globalState.animStartTime = -1;
+	globalState.animDealingCards = false;
+	globalState.hideCount = hideCount
+
+	initSlots(globalState.stackList);
+	globalState.deckCards = initDecks();
+
+	for (let i = 0; i < globalState.hideCount; i++) {
+		globalState.deckCards[i].revealed = false;
+	}
+
+	globalState.animDealingCards = true;
+	requestAnimationFrame(animDealCard);
+	stopFireWorkDisplay();
+	globalState.gameWin = false;
+
+	document.getElementById("btn-resume").classList.remove("disabled");
+
+	globalState.showHomeScreen = false;
+	clearHomeCanvas(globalState);
+	document.getElementById("canvas-f").style.display = "block";
+}
+
+
 window.addEventListener('load', (event) => {
 	checkStats(globalState);
-	let newGameBtn = document.getElementById('btn-new-game');
-	newGameBtn.addEventListener("click", function () {
-		globalState.stackList = [];
-		globalState.deckCards = [];
-		globalState.dragFrom = -1;
-		globalState.animStack = -1;
-		globalState.animStartTime = -1;
-		globalState.animDealingCards = false;
 
-		initSlots(globalState.stackList);
-		globalState.deckCards = initDecks();
+	let mainMenu = document.getElementById("main-menu");
+	let bottomBarLeft = document.getElementById("bottom-bar-left");
 
-		globalState.animDealingCards = true;
-		requestAnimationFrame(animDealCard);
-		stopFireWorkDisplay();
-		globalState.gameWin = false;
+	let newGameEasy = document.getElementById('btn-new-easy');
+	newGameEasy.addEventListener("click", function () {
+		mainMenu.style.display = "none";
+		bottomBarLeft.style.display = "block";
+		startGame();
+	});
+
+	let newGameMedium = document.getElementById('btn-new-medium');
+	newGameMedium.addEventListener("click", function () {
+		mainMenu.style.display = "none";
+		bottomBarLeft.style.display = "block";
+		startGame(6);
+	});
+
+	let newGameHard = document.getElementById('btn-new-hard');
+	newGameHard.addEventListener("click", function () {
+		mainMenu.style.display = "none";
+		bottomBarLeft.style.display = "block";
+		startGame(12);
+	});
+
+	let gameResume = document.getElementById('btn-resume');
+	gameResume.addEventListener("click", function () {
+		if (gameResume.classList.contains('disabled')) {
+			return;
+		}
+		mainMenu.style.display = "none";
+		bottomBarLeft.style.display = "block";
+		globalState.showHomeScreen = false;
+		clearHomeCanvas(globalState);
+		document.getElementById("canvas-f").style.display = "block";
+	});
+
+	let menuBtn = document.getElementById("btn-menu");
+	menuBtn.addEventListener("click", function () {
+		bottomBarLeft.style.display = "none";
+		mainMenu.style.display = "block";
+		globalState.showHomeScreen = true;
+		requestAnimationFrame(animColumn);
+		document.getElementById("canvas-f").style.display = "none";
 	});
 
 	let colorblindBtn = document.getElementById('btn-colorblind');
@@ -860,11 +553,18 @@ window.addEventListener('load', (event) => {
 	let langBtn = document.getElementById('btn-lang');
 	langBtn.addEventListener("click", function () {
 		globalState.lang = (globalState.lang+1)%(LANG['btn_new_game'].length);
-		newGameBtn.innerHTML = LANG['btn_new_game'][globalState.lang];
 		bugBtn.innerHTML = LANG['btn_bug'][globalState.lang];
 		colorblindBtn.innerHTML = LANG['btn_colorblind'][globalState.lang];
 		weatherBtn.innerHTML = LANG['btn_weather'][globalState.lang];
 		langBtn.innerHTML = LANG['btn_lang'][globalState.lang];
+
+		document.getElementById('menu-title').innerHTML = LANG['menu_title'][globalState.lang];
+		document.getElementById('btn-new-easy').innerHTML = LANG['menu_easy'][globalState.lang];
+		document.getElementById('btn-new-medium').innerHTML = LANG['menu_medium'][globalState.lang];
+		document.getElementById('btn-new-hard').innerHTML = LANG['menu_hard'][globalState.lang];
+		document.getElementById('btn-resume').innerHTML = LANG['menu_resume'][globalState.lang];
+		document.getElementById('btn-menu').innerHTML = LANG['menu_btn'][globalState.lang];
+
 		document.getElementById('instruct-1').innerHTML = LANG['text_instruct_1'][globalState.lang];
 		document.getElementById('instruct-2').innerHTML = LANG['text_instruct_2'][globalState.lang];
 		document.getElementById('instruct-3').innerHTML = LANG['text_instruct_3'][globalState.lang];
@@ -878,16 +578,78 @@ window.addEventListener('load', (event) => {
 	globalState.canvasF = document.getElementById('canvas-f');
 	globalState.ctxF = globalState.canvasF.getContext('2d');
 
-	initSlots(globalState.stackList);
-	globalState.deckCards = initDecks();
-	globalState.animDealingCards = true;
-	requestAnimationFrame(animDealCard);
+	globalState.canvasH = document.getElementById('canvas-h');
+	globalState.ctxH = globalState.canvasH.getContext('2d');
 
 	setWeather(true);
 
+
+
+
+	// init home animation
+	globalState.homeCards = initDecks();
+	for (let i = 0; i < 6; i++) {
+		globalState.homeDecks.push(globalState.homeCards.slice(i*7, (i+1)*7-1));
+	}
+
+	requestAnimationFrame(animColumn);
+	document.getElementById("canvas-f").style.display = "none";
+
 	//checkWin(globalState, true);
 
-	globalState.showBug = true;
-	bugStart();
+	//bugStart();
 });
 
+function clearHomeCanvas(state) {
+	state.ctxH.clearRect(0, 0, state.canvas.width, state.canvas.height);
+}
+
+function redrawHome(state) {
+	state.ctxH.clearRect(0, 0, state.canvas.width, state.canvas.height);
+	state.ctxH.fillStyle = "#c9c9c9";
+	state.ctxH.fillRect(0, 0, 800, 650);
+	//state.ctxH.globalAlpha = 0.9;
+
+	let x = 20;
+	let y = globalState.animHomeOffset - 180;
+
+
+	for (let k = 0; k < 5; k++) {
+		let col = globalState.homeDecks[k]; 
+		for (let i = 0; i < 6; i++) {
+			col[i].x = x;
+			col[i].y = y;
+			col[i].render(state.ctxH);
+			y += 180;
+		}
+		x += 165;
+		y = globalState.animHomeOffset - 180;
+		if (k % 2 == 0) {
+			y -= 95;
+		}
+	}
+
+	if (globalState.animHomeOffset >= 180) {
+		for (let i = 0; i < 6; i++) {
+			let col = globalState.homeDecks[i];
+			globalState.homeDecks[i] = col.slice(col.length-1).concat(col.slice(0, col.length-1));
+		}
+		globalState.animHomeOffset = 0;
+	}
+}
+
+function animColumn(time) {
+	if (!globalState.showHomeScreen) {
+		return;
+	}
+
+	if (time - globalState.animHomeTime < 50) {
+		return requestAnimationFrame(animColumn);
+	}
+	globalState.animHomeTime = time;
+
+	globalState.animHomeOffset += 1;
+
+	redrawHome(globalState);
+	requestAnimationFrame(animColumn);
+}
