@@ -371,7 +371,7 @@ let globalState = {
 	stats: {
 		lastTs: Date.now()
 	},
-	showStats: true,
+	showStats: false,
 	animRate: 20, // higher is slower
 
 	showHomeScreen: true,
@@ -380,12 +380,19 @@ let globalState = {
 	animHomeTime: -1,
 	animHomeOffset: 0,
 
+	fadeOutCallback: function(){},
+	fadeInCallback: function(){},
+	transitionOpacity: 0,
+	transitionTime: 0,
+
 	canvas: null,
 	canvasF: null, // foreground
 	canvasH: null, // home
+	canvasT: null, // transition
 	ctx: null,
 	ctxF: null,
 	ctxH: null,
+	ctxT: null,
 
 	dragFrom: -1,
 	stackList: [],
@@ -474,9 +481,13 @@ function startGame(hideCount=0) {
 
 	document.getElementById("btn-resume").classList.remove("disabled");
 
-	globalState.showHomeScreen = false;
-	clearHomeCanvas(globalState);
-	document.getElementById("canvas-f").style.display = "block";
+	globalState.fadeOutCallback = () => {
+		globalState.showHomeScreen = false;
+		clearHomeCanvas(globalState);
+		document.getElementById("canvas-f").style.display = "block";
+		requestAnimationFrame(animFadeIn);
+	};
+	requestAnimationFrame(animFadeOut);
 }
 
 
@@ -512,20 +523,29 @@ window.addEventListener('load', (event) => {
 		if (gameResume.classList.contains('disabled')) {
 			return;
 		}
-		mainMenu.style.display = "none";
-		bottomBarLeft.style.display = "block";
-		globalState.showHomeScreen = false;
-		clearHomeCanvas(globalState);
-		document.getElementById("canvas-f").style.display = "block";
+
+		globalState.fadeOutCallback = () => {
+			mainMenu.style.display = "none";
+			bottomBarLeft.style.display = "block";
+			globalState.showHomeScreen = false;
+			clearHomeCanvas(globalState);
+			document.getElementById("canvas-f").style.display = "block";
+			requestAnimationFrame(animFadeIn);
+		};
+		requestAnimationFrame(animFadeOut);
 	});
 
 	let menuBtn = document.getElementById("btn-menu");
 	menuBtn.addEventListener("click", function () {
-		bottomBarLeft.style.display = "none";
-		mainMenu.style.display = "block";
-		globalState.showHomeScreen = true;
-		requestAnimationFrame(animColumn);
-		document.getElementById("canvas-f").style.display = "none";
+		globalState.fadeOutCallback = () => {
+			bottomBarLeft.style.display = "none";
+			mainMenu.style.display = "block";
+			globalState.showHomeScreen = true;
+			requestAnimationFrame(animColumn);
+			document.getElementById("canvas-f").style.display = "none";
+			requestAnimationFrame(animFadeIn);
+		};
+		requestAnimationFrame(animFadeOut);
 	});
 
 	let colorblindBtn = document.getElementById('btn-colorblind');
@@ -581,9 +601,10 @@ window.addEventListener('load', (event) => {
 	globalState.canvasH = document.getElementById('canvas-h');
 	globalState.ctxH = globalState.canvasH.getContext('2d');
 
+	globalState.canvasT = document.getElementById('canvas-t');
+	globalState.ctxT = globalState.canvasT.getContext('2d');
+
 	setWeather(true);
-
-
 
 
 	// init home animation
@@ -599,6 +620,48 @@ window.addEventListener('load', (event) => {
 
 	//bugStart();
 });
+
+function animFadeOut(time) {
+	if (time - globalState.transitionTime < 30) {
+		return requestAnimationFrame(animFadeOut);
+	}
+	globalState.transitionTime = time;
+
+	if (globalState.transitionOpacity >= 1) {
+		globalState.fadeOutCallback();
+		return;
+	}
+
+	globalState.transitionOpacity = Math.min(globalState.transitionOpacity+0.1, 1);
+
+	globalState.ctxT.clearRect(0, 0, globalState.canvas.width, globalState.canvas.height);
+	globalState.ctxT.fillStyle = "#555";
+	globalState.ctxT.globalAlpha = globalState.transitionOpacity;
+	globalState.ctxT.fillRect(0, 0, 800, 650);
+
+	requestAnimationFrame(animFadeOut);
+}
+
+function animFadeIn(time) {
+	if (time - globalState.transitionTime < 30) {
+		return requestAnimationFrame(animFadeIn);
+	}
+	globalState.transitionTime = time;
+
+	if (globalState.transitionOpacity <= 0) {
+		globalState.fadeInCallback();
+		return;
+	}
+
+	globalState.transitionOpacity = Math.max(globalState.transitionOpacity-0.1, 0);
+
+	globalState.ctxT.clearRect(0, 0, globalState.canvas.width, globalState.canvas.height);
+	globalState.ctxT.fillStyle = "#555";
+	globalState.ctxT.globalAlpha = globalState.transitionOpacity;
+	globalState.ctxT.fillRect(0, 0, 800, 650);
+
+	requestAnimationFrame(animFadeIn);
+}
 
 function clearHomeCanvas(state) {
 	state.ctxH.clearRect(0, 0, state.canvas.width, state.canvas.height);
