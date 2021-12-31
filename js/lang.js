@@ -37,22 +37,22 @@ const LANG = {
 	'menu_easy': [
 		'Easy',
 		'简单',
-		'Easy'
+		'😊'
 	],
 	'menu_medium': [
 		'Medium',
 		'中等',
-		'Medium'
+		'🤔'
 	],
 	'menu_hard': [
 		'Hard',
 		'困难',
-		'Hard'
+		'😣'
 	],
 	'menu_resume': [
 		'Resume',
 		'继续本局',
-		'Resume'
+		'⬅️'
 	],
 	'menu_btn': [
 		'Menu',
