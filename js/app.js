@@ -272,10 +272,6 @@ function startGame(hideCount=0) {
 		requestAnimationFrame(animFadeIn);
 	};
 	requestAnimationFrame(animFadeOut);
-
-	if (globalState.bgmOn && !globalState.bgmPlaying) {
-		playBgm(true);
-	}
 }
 
 function playBgm(val) {
@@ -345,6 +341,15 @@ let globalState = {
 		registerPointerListeners(globalState);
 
 		checkReveal(globalState);
+	}
+}
+
+function runGame() {
+	setWeather(true);
+	requestAnimationFrame(animColumn);
+	document.getElementById("canvas-f").style.display = "none";
+	if (globalState.bgmOn && !globalState.bgmPlaying) {
+		playBgm(true);
 	}
 }
 
@@ -490,22 +495,23 @@ window.addEventListener('load', (event) => {
 	globalState.canvasT = document.getElementById('canvas-t');
 	globalState.ctxT = globalState.canvasT.getContext('2d');
 
-	setWeather(true);
-
-
 	// init home animation
 	globalState.homeCards = initDecks();
 	for (let i = 0; i < 6; i++) {
 		globalState.homeDecks.push(globalState.homeCards.slice(i*7, (i+1)*7-1));
 	}
 
-	requestAnimationFrame(animColumn);
-	document.getElementById("canvas-f").style.display = "none";
-
+	// init music
 	globalState.bgm = document.createElement("audio");
-	globalState.bgm.src = "sound/green-tea.mp3";
+	globalState.bgm.src = "sound/fragments.mp3";
 	globalState.bgm.loop = true;
 
 	//checkWin(globalState, true);
 	//bugStart();
+
+	let playBtn = document.getElementById('btn-play');
+	playBtn.addEventListener("click", function () {
+		runGame();
+		document.getElementById('overlay').style.display = "none";
+	});
 });
